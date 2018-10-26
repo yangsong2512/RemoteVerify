@@ -1,5 +1,6 @@
 package com.omniremotes.remoteverify;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -7,11 +8,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,6 +32,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
     private static final int REQUST_BLUETOOTH_ENABLE = 0;
+    private static final int REQUEST_NECESSARY_PERMISSIONS = 1;
     private boolean mEnabled = false;
     private ICoreService mService;
     private Handler mUiHandler;
@@ -114,6 +119,48 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public boolean requestNecessaryPermissions(){
+        boolean granted = true;
+        String permissions[] = new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION};
+        for(String permission:permissions){
+            if(checkSelfPermission(permission)!=PackageManager.PERMISSION_GRANTED){
+                granted = false;
+            }
+        }
+        if(!granted){
+            requestPermissions(permissions,REQUEST_NECESSARY_PERMISSIONS);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        boolean granted = true;
+        if(requestCode == REQUEST_NECESSARY_PERMISSIONS){
+            int count = permissions.length;
+            for (int i = 0; i < count; i++){
+                if(permissions[i].equals(Manifest.permission.ACCESS_FINE_LOCATION)){
+                    if(grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                        granted = false;
+                    }
+                }
+                if(permissions[i].equals(Manifest.permission.ACCESS_COARSE_LOCATION)){
+                    if(grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                        granted = false;
+                    }
+                }
+            }
+            if(!granted){
+                if(continueInitialize()){
+                    Log.d(TAG,"initialize cannot continue");
+                }
+            }
+        }
+    }
+
     private boolean continueInitialize(){
         ListView scanListView = findViewById(R.id.scan_list);
         CoreService coreService = CoreService.getCoreService();
@@ -141,7 +188,9 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    continueInitialize();
+                    if(requestNecessaryPermissions()){
+                        continueInitialize();
+                    }
                 }
             });
         }

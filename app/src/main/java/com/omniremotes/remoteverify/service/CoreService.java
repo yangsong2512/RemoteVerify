@@ -119,6 +119,9 @@ public class CoreService extends Service {
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
             Log.d(TAG,"on new scan result");
+            if(mScanListAdapter != null){
+                mScanListAdapter.notifyDataSetChanged(result);
+            }
         }
     }
 
@@ -137,16 +140,19 @@ public class CoreService extends Service {
         ScanFilter.Builder filterBuilder = new ScanFilter.Builder();
         ScanFilter filter = filterBuilder.build();
         ScanSettings.Builder settingsBuilder = new ScanSettings.Builder();
+        settingsBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
         ScanSettings settings = settingsBuilder.build();
         mScanCallback = new DeviceScanCallback();
-        bluetoothLeScanner.startScan(Arrays.asList(filter),settings,mScanCallback);
+        bluetoothLeScanner.startScan(null,settings,mScanCallback);
         mScanning = true;
         Log.d(TAG,"ble is scanning");
         return true;
     }
 
     public boolean stopScan(){
+        Log.d(TAG,"stop scan");
         if(!mScanning || mBluetoothAdapter == null){
+            Log.e(TAG,"scan already stopped");
             return false;
         }
         BluetoothLeScanner bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();

@@ -67,7 +67,7 @@ public class ScanListAdapter extends BaseAdapter {
         if(convertView == null){
             viewHolder = new ViewHolder();
             LayoutInflater inflater = LayoutInflater.from(mContext);
-            convertView = inflater.inflate(R.layout.scan_list_item,parent);
+            convertView = inflater.inflate(R.layout.scan_list_item,parent,false);
             viewHolder.rssiView = convertView.findViewById(R.id.device_rssi);
             viewHolder.infoView = convertView.findViewById(R.id.device_info);
             viewHolder.statusView = convertView.findViewById(R.id.device_status);
@@ -77,7 +77,7 @@ public class ScanListAdapter extends BaseAdapter {
             viewHolder =(ViewHolder) convertView.getTag();
         }
         ScanResult scanResult = mScanList.get(position);
-        viewHolder.rssiView.setText(scanResult.getRssi());
+        viewHolder.rssiView.setText(""+scanResult.getRssi());
         BluetoothDevice device = scanResult.getDevice();
         if(device == null){
             return null;
