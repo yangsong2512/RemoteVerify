@@ -9,7 +9,10 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
@@ -30,6 +33,7 @@ public class CoreService extends Service {
     private ScanListAdapter mScanListAdapter;
     private boolean mScanning = false;
     private DeviceScanCallback mScanCallback;
+    private BluetoothEventReceiver mReceiver;
     static {
         System.loadLibrary("native-lib");
     }
@@ -45,9 +49,30 @@ public class CoreService extends Service {
 
     }
 
+    private class BluetoothEventReceiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(action == null){
+                return;
+            }
+            switch (action){
+                case BluetoothAdapter.ACTION_STATE_CHANGED:
+                {
+                    int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,BluetoothAdapter.ERROR);
+                    if(state == BluetoothAdapter.STATE_ON){
+                        mEnabled = true;
+                        startScan();
+                    }
+                }
+                break;
+            }
+        }
+    }
+
     private static class CoreServiceBinder extends ICoreService.Stub{
         CoreService svc;
-        public CoreServiceBinder(CoreService service){
+        CoreServiceBinder(CoreService service){
             svc = service;
         }
         @Override
@@ -98,20 +123,26 @@ public class CoreService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG,"onCreate");
-        mBinder = new CoreServiceBinder(this);
-        setCoreService(this);
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if(mBluetoothAdapter == null){
-            Log.d(TAG,"This device does not support bluetooth");
+            Log.d(TAG,"Device dose not support bluetooth");
             return;
         }
+        mEnabled = mBluetoothAdapter.isEnabled();
+        mBinder = new CoreServiceBinder(this);
+        setCoreService(this);
+        mReceiver = new BluetoothEventReceiver();
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(mReceiver,filter);
         if(mDeviceListAdapter == null) {
             mDeviceListAdapter = new DeviceListAdapter(getBaseContext());
         }
         if(mScanListAdapter == null){
             mScanListAdapter = new ScanListAdapter(getBaseContext());
         }
-        startScan();
+        if(mEnabled){
+            startScan();
+        }
     }
 
     private class DeviceScanCallback extends ScanCallback{
@@ -172,8 +203,13 @@ public class CoreService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG,"onServiceDestroy");
         sCoreService = null;
         stopScan();
+        if(mReceiver != null){
+            unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
     }
 
     public native String stringFromJNI();

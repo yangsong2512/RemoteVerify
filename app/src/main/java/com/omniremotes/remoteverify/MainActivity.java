@@ -33,21 +33,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
     private static final int REQUST_BLUETOOTH_ENABLE = 0;
     private static final int REQUEST_NECESSARY_PERMISSIONS = 1;
-    private boolean mEnabled = false;
     private ICoreService mService;
-    private Handler mUiHandler;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        registerReceiver(mReceiver,filter);
-        if(!checkBluetoothState()){
-            Toast.makeText(this,"Device does not support bluetooth",Toast.LENGTH_LONG).show();
-            finish();
-        }else {
-            doBind();
-        }
+        doBind();
     }
 
     private void doBind(){
@@ -70,51 +61,19 @@ public class MainActivity extends AppCompatActivity {
             if(!adapter.isEnabled()){
                 Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(intent,REQUST_BLUETOOTH_ENABLE);
-                mEnabled = false;
-            }else {
-                mEnabled = true;
             }
             return true;
         }
         return false;
     }
 
-    BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if(action == null){
-                return;
-            }
-            switch (action){
-                case BluetoothAdapter.ACTION_STATE_CHANGED:
-                    int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,BluetoothAdapter.ERROR);
-                    if(state == BluetoothAdapter.STATE_ON){
-                        mEnabled = true;
-                    }else if(state == BluetoothAdapter.STATE_OFF){
-                        mEnabled = false;
-                    }
-                    try{
-                        if(mService != null){
-                            mService.notifyBluetoothStateChanged(mEnabled);
-                        }
-                    }catch (RemoteException e){
-                        Log.d(TAG,""+e);
-                    }
-                    break;
-            }
-        }
-    };
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == REQUST_BLUETOOTH_ENABLE){
             if(resultCode == RESULT_OK){
-                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                if(adapter.isEnabled()){
-                    mEnabled = true;
-                }
+                Log.d(TAG,"Start turning on bluetooth");
             }
         }
     }
@@ -162,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean continueInitialize(){
+
         ListView scanListView = findViewById(R.id.scan_list);
         CoreService coreService = CoreService.getCoreService();
         if(coreService == null){
@@ -180,15 +140,13 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.e(TAG,"onServiceConnected");
             mService = ICoreService.Stub.asInterface(service);
-            try{
-                mService.notifyBluetoothStateChanged(mEnabled);
-            }catch (RemoteException e){
-                Log.d(TAG,""+e);
-            }
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     if(requestNecessaryPermissions()){
+                        if(!checkBluetoothState()){
+                            Log.d(TAG,"This device does not support bluetooth");
+                        }
                         continueInitialize();
                     }
                 }
@@ -216,10 +174,6 @@ public class MainActivity extends AppCompatActivity {
             }
             unbindService(mConnection);
         }
-        if(mReceiver != null){
-            Log.d(TAG,"unregisterReceiver");
-            unregisterReceiver(mReceiver);
-        }
     }
 
     @Override
@@ -231,10 +185,6 @@ public class MainActivity extends AppCompatActivity {
                 }catch (RemoteException e){
                     Log.d(TAG,""+e);
                 }
-            }
-            if(mReceiver != null){
-                unregisterReceiver(mReceiver);
-                mReceiver = null;
             }
             if(mService != null){
                 unbindService(mConnection);
