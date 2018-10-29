@@ -66,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
         if(requestCode == REQUEST_BLUETOOTH_ENABLE){
             if(resultCode == RESULT_OK){
                 Log.d(TAG,"Start turning on bluetooth");
+            }else{
+                Toast.makeText(getBaseContext(),"Failed to open bluetooth",Toast.LENGTH_LONG).show();
+                finish();
             }
         }
     }
@@ -137,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     if(requestNecessaryPermissions()){
                         if(!checkBluetoothState()){
-                            Log.d(TAG,"This device does not support bluetooth");
+                            finish();
                         }
                         continueInitialize();
                     }
