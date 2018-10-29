@@ -91,12 +91,12 @@ public class ScanListAdapter extends BaseAdapter {
     }
 
     public synchronized void notifyDataSetChanged(ScanResult result){
-        int position = 0;
+        int index = 0;
         int max =  0;
         ScanResult dupResult = null;
         for(ScanResult tmp:mScanList){
             String address = tmp.getDevice().getAddress();
-            int p = mScanList.indexOf(tmp);
+            int curIndex = mScanList.indexOf(tmp);
             String inAddress = result.getDevice().getAddress();
             int inRssi = result.getRssi();
             int rssi = tmp.getRssi();
@@ -109,10 +109,12 @@ public class ScanListAdapter extends BaseAdapter {
             }
             if(inRssi>rssi && max != 1){
                 max = 1;
-                position = p;
+                index = curIndex;
+            }else if(max == 0){
+                ++index;
             }
         }
-        mScanList.add(position,result);
+        mScanList.add(index,result);
         if(dupResult!=null){
             mScanList.remove(dupResult);
         }

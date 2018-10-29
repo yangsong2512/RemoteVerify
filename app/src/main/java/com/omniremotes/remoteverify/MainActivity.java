@@ -225,6 +225,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if(keyCode == KeyEvent.KEYCODE_BACK){
+            if(mService != null){
+                try{
+                    mService.stopScan();
+                }catch (RemoteException e){
+                    Log.d(TAG,""+e);
+                }
+            }
+            if(mReceiver != null){
+                unregisterReceiver(mReceiver);
+                mReceiver = null;
+            }
+            if(mService != null){
+                unbindService(mConnection);
+                mService = null;
+            }
             finish();
         }
         return super.onKeyDown(keyCode, event);
