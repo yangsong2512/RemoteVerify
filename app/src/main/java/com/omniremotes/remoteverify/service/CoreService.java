@@ -118,7 +118,6 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
-            Log.d(TAG,"on new scan result");
             if(mScanListAdapter != null){
                 mScanListAdapter.notifyDataSetChanged(result);
             }

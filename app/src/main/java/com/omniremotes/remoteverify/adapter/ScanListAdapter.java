@@ -90,15 +90,32 @@ public class ScanListAdapter extends BaseAdapter {
         return convertView;
     }
 
-    public void notifyDataSetChanged(ScanResult result){
+    public synchronized void notifyDataSetChanged(ScanResult result){
+        int position = 0;
+        int max =  0;
+        ScanResult dupResult = null;
         for(ScanResult tmp:mScanList){
             String address = tmp.getDevice().getAddress();
+            int p = mScanList.indexOf(tmp);
             String inAddress = result.getDevice().getAddress();
+            int inRssi = result.getRssi();
+            int rssi = tmp.getRssi();
             if(address.equals(inAddress)){
-                return;
+                if(inRssi == rssi){
+                    return;
+                }else {
+                    dupResult = tmp;
+                }
+            }
+            if(inRssi>rssi && max != 1){
+                max = 1;
+                position = p;
             }
         }
-        mScanList.add(result);
+        mScanList.add(position,result);
+        if(dupResult!=null){
+            mScanList.remove(dupResult);
+        }
         notifyDataSetChanged();
     }
 }
