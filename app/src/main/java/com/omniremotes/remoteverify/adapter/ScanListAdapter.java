@@ -21,14 +21,29 @@ public class ScanListAdapter extends BaseAdapter {
     private List<ScanResult> mScanList;
     private OnDeviceClickedListener mListener;
     private Context mContext;
-    interface OnDeviceClickedListener{
+    public interface OnDeviceClickedListener{
         void onDeviceClicked(ScanResult scanResult);
     }
 
     private class ViewHolder {
+        ViewHolder(){
+
+        }
+        ViewHolder(ScanResult result){
+            this.scanResult = result;
+        }
         TextView rssiView;
         TextView infoView;
         TextView statusView;
+        ScanResult scanResult;
+
+        private void setScanResult(ScanResult scanResult) {
+            this.scanResult = scanResult;
+        }
+
+        private ScanResult getScanResult() {
+            return scanResult;
+        }
     }
 
     public void registerOnDeviceClickedListener(OnDeviceClickedListener listener) {
@@ -57,7 +72,13 @@ public class ScanListAdapter extends BaseAdapter {
     private View.OnClickListener mOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Toast.makeText(mContext,"Device Clicked",Toast.LENGTH_LONG).show();
+            ViewHolder viewHolder = (ViewHolder) v.getTag();
+            ScanResult scanResult = viewHolder.getScanResult();
+            String address = scanResult.getDevice().getAddress();
+            Toast.makeText(mContext,"Device Clicked:"+address,Toast.LENGTH_LONG).show();
+            if(mListener != null){
+                mListener.onDeviceClicked(scanResult);
+            }
         }
     };
 
@@ -74,10 +95,12 @@ public class ScanListAdapter extends BaseAdapter {
             viewHolder.statusView = convertView.findViewById(R.id.device_status);
             convertView.setOnClickListener(mOnClickListener);
             convertView.setTag(viewHolder);
+            convertView.setId(position);
         }else {
             viewHolder =(ViewHolder) convertView.getTag();
         }
         ScanResult scanResult = mScanList.get(position);
+        viewHolder.setScanResult(scanResult);
         viewHolder.rssiView.setText(String.valueOf(scanResult.getRssi()));
         BluetoothDevice device = scanResult.getDevice();
         if(device == null){

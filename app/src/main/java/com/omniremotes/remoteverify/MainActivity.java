@@ -2,36 +2,28 @@ package com.omniremotes.remoteverify;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
 import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.ICoreService;
-
-import java.util.List;
-
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
-    private static final int REQUST_BLUETOOTH_ENABLE = 0;
+    private static final int REQUEST_BLUETOOTH_ENABLE = 0;
     private static final int REQUEST_NECESSARY_PERMISSIONS = 1;
     private ICoreService mService;
     @Override
@@ -60,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         }else{
             if(!adapter.isEnabled()){
                 Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(intent,REQUST_BLUETOOTH_ENABLE);
+                startActivityForResult(intent,REQUEST_BLUETOOTH_ENABLE);
             }
             return true;
         }
@@ -71,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == REQUST_BLUETOOTH_ENABLE){
+        if(requestCode == REQUEST_BLUETOOTH_ENABLE){
             if(resultCode == RESULT_OK){
                 Log.d(TAG,"Start turning on bluetooth");
             }
@@ -158,6 +150,11 @@ public class MainActivity extends AppCompatActivity {
             mService = null;
         }
     };
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return true;
+    }
 
     @Override
     protected void onDestroy() {

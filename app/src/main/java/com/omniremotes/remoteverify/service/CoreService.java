@@ -139,6 +139,12 @@ public class CoreService extends Service {
         }
         if(mScanListAdapter == null){
             mScanListAdapter = new ScanListAdapter(getBaseContext());
+            mScanListAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
+                @Override
+                public void onDeviceClicked(ScanResult scanResult) {
+                    stopScan();
+                }
+            });
         }
         if(mEnabled){
             startScan();
