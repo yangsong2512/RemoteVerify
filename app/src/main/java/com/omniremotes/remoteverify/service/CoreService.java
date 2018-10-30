@@ -155,6 +155,7 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
+            Log.d(TAG,"onScanResult");
             if(mScanListAdapter != null){
                 mScanListAdapter.notifyDataSetChanged(result);
             }
@@ -199,6 +200,9 @@ public class CoreService extends Service {
     }
 
     public ScanListAdapter getScanListAdapter() {
+        if(mScanListAdapter == null){
+            mScanListAdapter = new ScanListAdapter(getBaseContext());
+        }
         return mScanListAdapter;
     }
 

@@ -2,6 +2,7 @@ package com.omniremotes.remoteverify;
 
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.le.ScanResult;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -10,6 +11,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +23,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
+import com.omniremotes.remoteverify.fragment.ScanListFragment;
+import com.omniremotes.remoteverify.fragment.TestCaseFragment;
 import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.ICoreService;
 public class MainActivity extends AppCompatActivity {
@@ -26,11 +32,32 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_BLUETOOTH_ENABLE = 0;
     private static final int REQUEST_NECESSARY_PERMISSIONS = 1;
     private ICoreService mService;
+    private ScanListFragment mScanListFragment;
+    private TestCaseFragment mTestCaseFragment;
+    private boolean mServiceConnected = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initializeFragment();
         doBind();
+    }
+
+    private void initializeFragment(){
+        mScanListFragment = new ScanListFragment();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.fragment_main,mScanListFragment);
+        mScanListFragment.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
+            @Override
+            public void onDeviceClicked(ScanResult scanResult) {
+                switch2TestCaseFragment(scanResult);
+            }
+        });
+        if(mServiceConnected){
+            mScanListFragment.onCoreServiceConnected();
+        }
+        fragmentTransaction.commit();
     }
 
     private void doBind(){
@@ -108,26 +135,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if(!granted){
-                if(continueInitialize()){
-                    Log.d(TAG,"initialize cannot continue");
-                }
+                mScanListFragment.onCoreServiceConnected();
             }
         }
     }
 
-    private boolean continueInitialize(){
-
-        ListView scanListView = findViewById(R.id.scan_list);
-        CoreService coreService = CoreService.getCoreService();
-        if(coreService == null){
-            return false;
+    private void switch2TestCaseFragment(ScanResult scanResult){
+        Toast.makeText(getBaseContext(),"switch to new fragment",Toast.LENGTH_LONG).show();
+        if(mTestCaseFragment == null){
+            mTestCaseFragment = new TestCaseFragment();
         }
-        ScanListAdapter adapter = coreService.getScanListAdapter();
-        if(adapter == null){
-            return false;
-        }
-        scanListView.setAdapter(adapter);
-        return true;
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.replace(R.id.fragment_main,mTestCaseFragment);
+        fragmentTransaction.commit();
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -142,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                         if(!checkBluetoothState()){
                             finish();
                         }
-                        continueInitialize();
+                        mScanListFragment.onCoreServiceConnected();
                     }
                 }
             });
@@ -179,18 +200,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if(keyCode == KeyEvent.KEYCODE_BACK){
-            if(mService != null){
-                try{
-                    mService.stopScan();
-                }catch (RemoteException e){
-                    Log.d(TAG,""+e);
+            if(mScanListFragment.isFragmentDetached()){
+                Log.d(TAG,"mScanListFragment is detached");
+                initializeFragment();
+            }else{
+                Log.d(TAG,"mScanListFragment is not detached");
+                if(mService != null){
+                    try{
+                        mService.stopScan();
+                    }catch (RemoteException e){
+                        Log.d(TAG,""+e);
+                    }
                 }
+                if(mService != null){
+                    unbindService(mConnection);
+                    mService = null;
+                }
+                finish();
             }
-            if(mService != null){
-                unbindService(mConnection);
-                mService = null;
-            }
-            finish();
+            return false;
         }
         return super.onKeyDown(keyCode, event);
     }
