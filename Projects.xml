@@ -1,0 +1,33 @@
+<Cases>
+	<Case>
+		<Title>Pairing Test</Title>
+		<Description>
+		Please press below key to enter advertise mode
+		</Description>
+		<Mode>0</Mode>
+		<Project Name="Common">
+			<Method>OK+Mute</Method>
+		</Project>
+	</Case>
+	<Case>
+		<Title>Voice Test</Title>
+		<Description>
+		Press voice key or click start button to start voice test
+		</Description>
+		<Project Name="Common">
+			<Decoder>Adpcm</Decoder>
+			<SampleRate>16</SampleRate>
+			<Bitdepth>16</Bitdepth>
+		</Project>
+	</Case>
+	<Case>
+		<Title>Reconnect test</Title>
+		<Description>
+		Put the device into idle mode, and wait for device to be disconnected,
+		then press any key to reconnect
+		</Description>
+		<Project Name="Common">
+			<Timeout>60</Timeout>
+		</Project>
+	</Case>
+</Cases>
