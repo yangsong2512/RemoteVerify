@@ -74,8 +74,6 @@ public class ScanListAdapter extends BaseAdapter {
         public void onClick(View v) {
             ViewHolder viewHolder = (ViewHolder) v.getTag();
             ScanResult scanResult = viewHolder.getScanResult();
-            String address = scanResult.getDevice().getAddress();
-            Toast.makeText(mContext,"Device Clicked:"+address,Toast.LENGTH_LONG).show();
             if(mListener != null){
                 mListener.onDeviceClicked(scanResult);
             }

@@ -84,9 +84,11 @@ public class MainActivity extends AppCompatActivity implements CoreService.OnCor
         Log.d(TAG,"continueInitProcess");
         CoreService coreService = CoreService.getCoreService();
         if(coreService == null){
+            Log.d(TAG,"core service is null");
             return;
         }
         if(coreService.getBluetoothState()==CoreService.BLUETOOTH_FEATURE_NOT_SUPPORTED){
+            Log.d(TAG,"This device does not support bluetooth");
             finish();
             return;
         }
@@ -99,6 +101,12 @@ public class MainActivity extends AppCompatActivity implements CoreService.OnCor
 
     private void initializeFragment(){
         mScanListFragment = new ScanListFragment();
+        mScanListFragment.registerOnScanListFragmentEvents(new ScanListFragment.OnScanListFragmentEvents() {
+            @Override
+            public void onDeviceClicked(ScanResult result) {
+                switch2TestCaseFragment(result);
+            }
+        });
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.fragment_main,mScanListFragment);
@@ -145,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements CoreService.OnCor
         }
         if(!granted){
             requestPermissions(CoreService.mBluetoothPermissions,REQUEST_NECESSARY_PERMISSIONS);
-            finish();
+            Log.d(TAG,"request permission");
             return false;
         }
         requestEnableBluetooth();
@@ -177,16 +185,16 @@ public class MainActivity extends AppCompatActivity implements CoreService.OnCor
         }
     }
 
-    /*
     private void switch2TestCaseFragment(ScanResult scanResult){
-        Toast.makeText(getBaseContext(),"switch to new fragment",Toast.LENGTH_LONG).show();
         mTestCaseFragment = new TestCaseFragment();
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("ScanResult",scanResult);
+        mTestCaseFragment.setArguments(bundle);
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.fragment_main,mTestCaseFragment);
         fragmentTransaction.commit();
     }
-    */
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -215,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements CoreService.OnCor
         if(keyCode == KeyEvent.KEYCODE_BACK){
             if(mScanListFragment.isFragmentDetached()){
                 Log.d(TAG,"mScanListFragment is detached");
-                //initializeFragment();
+                initializeFragment();
             }else{
                 Log.d(TAG,"mScanListFragment is not detached");
                 if(mService != null){
