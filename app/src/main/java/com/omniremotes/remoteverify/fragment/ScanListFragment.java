@@ -1,5 +1,6 @@
 package com.omniremotes.remoteverify.fragment;
 
+import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -21,6 +22,14 @@ public class ScanListFragment extends Fragment {
     private boolean mDetached = false;
     private boolean mViewCreated = false;
     private boolean mServiceConnected = false;
+    private ScanListAdapter mAdapter;
+    public interface OnScanListFragmentEvents{
+
+    }
+    public ScanListFragment(){
+
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -34,35 +43,10 @@ public class ScanListFragment extends Fragment {
         Log.d(TAG,"onViewCreated");
         mScanListView = view.findViewById(R.id.scan_list);
         mViewCreated = true;
-        if(mServiceConnected){
-            onCoreServiceConnected();
+        if(mAdapter == null){
+            mAdapter = new ScanListAdapter(getActivity());
         }
-    }
-
-    public void onCoreServiceConnected(){
-        mServiceConnected = true;
-        Log.d(TAG,"onCoreServiceConnected");
-        CoreService coreService = CoreService.getCoreService();
-        if(coreService == null){
-            return;
-        }
-        ScanListAdapter adapter = coreService.getScanListAdapter();
-        if(adapter == null){
-            return;
-        }
-        Log.d(TAG,"setAdapter");
-        if(mViewCreated && mScanListView != null){
-            mScanListView.setAdapter(adapter);
-        }
-    }
-
-    public void registerOnDeviceClickedListener(ScanListAdapter.OnDeviceClickedListener listener){
-        CoreService coreService = CoreService.getCoreService();
-        if(coreService == null){
-            return;
-        }
-        ScanListAdapter adapter = coreService.getScanListAdapter();
-        adapter.registerOnDeviceClickedListener(listener);
+        mScanListView.setAdapter(mAdapter);
     }
 
     @Override
@@ -83,6 +67,12 @@ public class ScanListFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG,"onDestroy");
+    }
+
+    public void notifyDataSetChanged(ScanResult result){
+        if(mAdapter != null){
+            mAdapter.notifyDataSetChanged(result);
+        }
     }
 
     public boolean isFragmentDetached() {

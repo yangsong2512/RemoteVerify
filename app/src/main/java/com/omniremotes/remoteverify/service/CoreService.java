@@ -1,41 +1,48 @@
 package com.omniremotes.remoteverify.service;
 
+import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Log;
-
-import com.omniremotes.remoteverify.adapter.DeviceListAdapter;
-import com.omniremotes.remoteverify.adapter.ScanListAdapter;
-
-import java.util.Arrays;
-import java.util.Set;
-
 public class CoreService extends Service {
     // Used to load the 'native-lib' library on application startup.
     private String TAG = "RemoteVerify-CoreService";
     private BluetoothAdapter mBluetoothAdapter;
     private CoreServiceBinder mBinder;
     private boolean mEnabled = false;
-    private DeviceListAdapter mDeviceListAdapter;
-    private ScanListAdapter mScanListAdapter;
     private boolean mScanning = false;
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
-    static {
+    private OnCoreServiceEvents mListener;
+    public static final int BLUETOOTH_FEATURE_NOT_SUPPORTED = 0;
+    public static final int BLUETOOTH_PERMISSION_NOT_GRANTED = 1;
+    public static final int BLUETOOTH_NOT_ENABLED = 2;
+    public static final int BLUETOOTH_ENABLED = 3;
+    public static String[] mBluetoothPermissions = new String[]{
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN,
+    };
+
+     static {
         System.loadLibrary("native-lib");
+    }
+
+    public interface OnCoreServiceEvents{
+        void onScanResults(ScanResult scanResult);
+        void onBluetoothStateChanged(int state,int preState);
     }
 
     private static CoreService sCoreService;
@@ -60,10 +67,19 @@ public class CoreService extends Service {
                 case BluetoothAdapter.ACTION_STATE_CHANGED:
                 {
                     int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,BluetoothAdapter.ERROR);
+                    int preState = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE,BluetoothAdapter.ERROR);
                     if(state == BluetoothAdapter.STATE_ON){
                         mEnabled = true;
                         startScan();
                     }
+                    if(mListener != null){
+                        mListener.onBluetoothStateChanged(state,preState);
+                    }
+                }
+                break;
+                case BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED:
+                {
+
                 }
                 break;
             }
@@ -79,13 +95,6 @@ public class CoreService extends Service {
         public void initHid(){
 
         }
-        @Override
-        public void notifyBluetoothStateChanged(boolean enabled) {
-            if (svc == null) {
-                return;
-            }
-            svc.notifyBluetoothStateChanged(enabled);
-        }
 
         public boolean startScan(){
             if(svc== null){
@@ -100,12 +109,6 @@ public class CoreService extends Service {
             }
             return svc.stopScan();
         }
-    }
-
-
-    public void notifyBluetoothStateChanged(boolean enabled){
-        mEnabled = enabled;
-        startScan();
     }
 
     @Override
@@ -134,18 +137,6 @@ public class CoreService extends Service {
         mReceiver = new BluetoothEventReceiver();
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mReceiver,filter);
-        if(mDeviceListAdapter == null) {
-            mDeviceListAdapter = new DeviceListAdapter(getBaseContext());
-        }
-        if(mScanListAdapter == null){
-            mScanListAdapter = new ScanListAdapter(getBaseContext());
-            mScanListAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
-                @Override
-                public void onDeviceClicked(ScanResult scanResult) {
-                    stopScan();
-                }
-            });
-        }
         if(mEnabled){
             startScan();
         }
@@ -156,8 +147,8 @@ public class CoreService extends Service {
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
             Log.d(TAG,"onScanResult");
-            if(mScanListAdapter != null){
-                mScanListAdapter.notifyDataSetChanged(result);
+            if(mListener != null){
+                mListener.onScanResults(result);
             }
         }
     }
@@ -199,17 +190,6 @@ public class CoreService extends Service {
         return true;
     }
 
-    public ScanListAdapter getScanListAdapter() {
-        if(mScanListAdapter == null){
-            mScanListAdapter = new ScanListAdapter(getBaseContext());
-        }
-        return mScanListAdapter;
-    }
-
-    public DeviceListAdapter getDeviceListAdapter(){
-        return mDeviceListAdapter;
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -222,6 +202,47 @@ public class CoreService extends Service {
         }
     }
 
+    public void registerOnCoreServiceEventsListener(OnCoreServiceEvents listener){
+        mListener = listener;
+    }
+
+    public void unregisterOnCoreServiceEventsListener(){
+        mListener = null;
+    }
+
+    public int getBluetoothState(){
+        if(mBluetoothAdapter == null){
+            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        }
+        if(mBluetoothAdapter == null){
+            Log.d(TAG,"This device dose not support bluetooth");
+            return BLUETOOTH_FEATURE_NOT_SUPPORTED;
+        }
+        if(!checkPermissions()){
+            return BLUETOOTH_PERMISSION_NOT_GRANTED;
+        }
+        if(mBluetoothAdapter.isEnabled()){
+            return BLUETOOTH_ENABLED;
+        }
+        return BLUETOOTH_NOT_ENABLED;
+    }
+
+    public boolean checkPermissions(){
+        for(String permission:mBluetoothPermissions){
+            if(checkSelfPermission(permission)!=PackageManager.PERMISSION_GRANTED){
+                return false;
+            }
+        }
+        Log.d(TAG,"all permissions required");
+        return true;
+    }
+
+    public boolean isEnabled(){
+        if(mBluetoothAdapter == null){
+            return false;
+        }
+        return mBluetoothAdapter.isEnabled();
+    }
     public native String stringFromJNI();
     public native void initHidNative();
 }
