@@ -2,7 +2,6 @@ package com.omniremotes.remoteverify.fragment;
 
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -12,23 +11,29 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
-import com.omniremotes.remoteverify.service.CoreService;
+import com.omniremotes.remoteverify.service.CoreServiceManager;
+import com.omniremotes.remoteverify.service.ICoreServiceListener;
 
 public class ScanListFragment extends Fragment {
-    private final String TAG="RemoteVerify-ScanListFragment";
-    private ListView mScanListView;
-    private boolean mDetached = false;
+    private static final String TAG="RemoteVerify-ScanListFragment";
+    private static ScanListFragment mScanListFragment;
     private ScanListAdapter mAdapter;
     private OnScanListFragmentEvents mListener;
+    private CoreServiceManager mServiceManager;
+    private boolean mServiceConnected = false;
+    public static ScanListFragment getInstance(){
+        if(mScanListFragment == null){
+            mScanListFragment = new ScanListFragment();
+        }
+        return mScanListFragment;
+    }
     public interface OnScanListFragmentEvents{
         void onDeviceClicked(ScanResult result);
     }
     public ScanListFragment(){
-
     }
 
     public void registerOnScanListFragmentEvents(OnScanListFragmentEvents listener){
@@ -46,7 +51,8 @@ public class ScanListFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG,"onViewCreated");
-        mScanListView = view.findViewById(R.id.scan_list);
+
+        ListView listView = view.findViewById(R.id.scan_list);
         if(mAdapter == null){
             mAdapter = new ScanListAdapter(getActivity());
             mAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
@@ -58,36 +64,54 @@ public class ScanListFragment extends Fragment {
                 }
             });
         }
-        mScanListView.setAdapter(mAdapter);
+        listView.setAdapter(mAdapter);
+        if(mServiceManager == null){
+            mServiceManager = CoreServiceManager.getInstance();
+            mServiceManager.registerCoreServiceListener(new CoreServiceListener());
+            if(mServiceManager.isServiceConnected()){
+                //TODO
+            }
+        }
     }
+
+    private class CoreServiceListener implements ICoreServiceListener{
+        @Override
+        public void onServiceDisconnected() {
+            Log.d(TAG,"core service disconnected");
+        }
+
+        @Override
+        public void onServiceConnected() {
+            Log.d(TAG,"core service connected");
+        }
+
+        @Override
+        public void onScanResult(ScanResult result) {
+            if(mAdapter != null){
+                mAdapter.notifyDataSetChanged(result);
+            }
+        }
+    }
+
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         Log.d(TAG,"onAttach");
-        mDetached = false;
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
         Log.d(TAG,"onDetach");
-        mDetached = true;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG,"onDestroy");
-    }
-
-    public void notifyDataSetChanged(ScanResult result){
-        if(mAdapter != null){
-            mAdapter.notifyDataSetChanged(result);
+        if(mServiceManager != null){
+            mServiceManager.unRegisterCoreServiceListener();
         }
-    }
-
-    public boolean isFragmentDetached() {
-        return mDetached;
+        Log.d(TAG,"onDestroy");
     }
 }

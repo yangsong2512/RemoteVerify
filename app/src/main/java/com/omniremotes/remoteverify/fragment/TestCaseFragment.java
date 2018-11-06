@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.text.Html;
+import android.text.SpannableString;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +24,22 @@ import java.io.UnsupportedEncodingException;
 
 public class TestCaseFragment extends Fragment {
     private static final String TAG="RemoteVerify-TestCaseFragment";
+    static private TestCaseFragment mTestCaseFragment;
+    public static TestCaseFragment getInstance(){
+        if(mTestCaseFragment == null){
+            mTestCaseFragment = new TestCaseFragment();
+        }
+        return mTestCaseFragment;
+    }
+
+    private String makeString(String string){
+        if(string == null){
+            string = "NULL";
+        }
+        SpannableString spannableString = new SpannableString(string);
+        return null;
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -38,9 +56,9 @@ public class TestCaseFragment extends Fragment {
         if(device == null){
             return;
         }
-        String name = device.getName();
-        name=name==null?name:"NULL";
-        textView.setText("Name:"+name);
+        String name = makeString(device.getName());
+        name=name!=null?name:"NULL";
+        textView.setText(name);
         textView.append("\nAddress:"+device.getAddress());
         textView.append("\nRSSI:"+scanResult.getRssi());
         ScanRecord scanRecord = scanResult.getScanRecord();

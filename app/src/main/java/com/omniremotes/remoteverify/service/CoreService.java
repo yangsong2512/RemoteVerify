@@ -25,16 +25,6 @@ public class CoreService extends Service {
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
     private OnCoreServiceEvents mListener;
-    public static final int BLUETOOTH_FEATURE_NOT_SUPPORTED = 0;
-    public static final int BLUETOOTH_PERMISSION_NOT_GRANTED = 1;
-    public static final int BLUETOOTH_NOT_ENABLED = 2;
-    public static final int BLUETOOTH_ENABLED = 3;
-    public static String[] mBluetoothPermissions = new String[]{
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN,
-    };
 
      static {
         System.loadLibrary("native-lib");
@@ -42,7 +32,6 @@ public class CoreService extends Service {
 
     public interface OnCoreServiceEvents{
         void onScanResults(ScanResult scanResult);
-        void onBluetoothStateChanged(int state,int preState);
     }
 
     private static CoreService sCoreService;
@@ -71,9 +60,6 @@ public class CoreService extends Service {
                     if(state == BluetoothAdapter.STATE_ON){
                         mEnabled = true;
                         startScan();
-                    }
-                    if(mListener != null){
-                        mListener.onBluetoothStateChanged(state,preState);
                     }
                 }
                 break;
@@ -169,6 +155,7 @@ public class CoreService extends Service {
         ScanFilter filter = filterBuilder.build();
         ScanSettings.Builder settingsBuilder = new ScanSettings.Builder();
         settingsBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+        settingsBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_POWER);
         ScanSettings settings = settingsBuilder.build();
         mScanCallback = new DeviceScanCallback();
         bluetoothLeScanner.startScan(null,settings,mScanCallback);
@@ -208,33 +195,6 @@ public class CoreService extends Service {
 
     public void unregisterOnCoreServiceEventsListener(){
         mListener = null;
-    }
-
-    public int getBluetoothState(){
-        if(mBluetoothAdapter == null){
-            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        }
-        if(mBluetoothAdapter == null){
-            Log.d(TAG,"This device dose not support bluetooth");
-            return BLUETOOTH_FEATURE_NOT_SUPPORTED;
-        }
-        if(!checkPermissions()){
-            return BLUETOOTH_PERMISSION_NOT_GRANTED;
-        }
-        if(mBluetoothAdapter.isEnabled()){
-            return BLUETOOTH_ENABLED;
-        }
-        return BLUETOOTH_NOT_ENABLED;
-    }
-
-    public boolean checkPermissions(){
-        for(String permission:mBluetoothPermissions){
-            if(checkSelfPermission(permission)!=PackageManager.PERMISSION_GRANTED){
-                return false;
-            }
-        }
-        Log.d(TAG,"all permissions required");
-        return true;
     }
 
     public boolean isEnabled(){
