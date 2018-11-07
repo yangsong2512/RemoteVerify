@@ -1,6 +1,8 @@
 // ICoreService.aidl
 package com.omniremotes.remoteverify.service;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 // Declare any non-default types here with import statements
 
 interface ICoreService {

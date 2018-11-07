@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">RemoteVerify</string>
+    <string name="test_case_run">Run</string>
 </resources>

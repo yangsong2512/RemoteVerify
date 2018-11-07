@@ -1,6 +1,5 @@
 package com.omniremotes.remoteverify.service;
 
-import android.Manifest;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -12,9 +11,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.util.Log;
+
+import java.util.Arrays;
+
 public class CoreService extends Service {
     // Used to load the 'native-lib' library on application startup.
     private String TAG = "RemoteVerify-CoreService";
@@ -132,7 +133,6 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
-            Log.d(TAG,"onScanResult");
             if(mListener != null){
                 mListener.onScanResults(result);
             }
@@ -155,10 +155,9 @@ public class CoreService extends Service {
         ScanFilter filter = filterBuilder.build();
         ScanSettings.Builder settingsBuilder = new ScanSettings.Builder();
         settingsBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
-        settingsBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_POWER);
         ScanSettings settings = settingsBuilder.build();
         mScanCallback = new DeviceScanCallback();
-        bluetoothLeScanner.startScan(null,settings,mScanCallback);
+        bluetoothLeScanner.startScan(Arrays.asList(filter),settings,mScanCallback);
         mScanning = true;
         Log.d(TAG,"ble is scanning");
         return true;

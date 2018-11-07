@@ -3,20 +3,25 @@ package com.omniremotes.remoteverify.fragment;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.Html;
 import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
+import com.omniremotes.remoteverify.adapter.TestCaseAdapter;
 
 import org.w3c.dom.Text;
 
@@ -25,6 +30,7 @@ import java.io.UnsupportedEncodingException;
 public class TestCaseFragment extends Fragment {
     private static final String TAG="RemoteVerify-TestCaseFragment";
     static private TestCaseFragment mTestCaseFragment;
+    private TestCaseAdapter mAdapter;
     public static TestCaseFragment getInstance(){
         if(mTestCaseFragment == null){
             mTestCaseFragment = new TestCaseFragment();
@@ -32,12 +38,11 @@ public class TestCaseFragment extends Fragment {
         return mTestCaseFragment;
     }
 
-    private String makeString(String string){
-        if(string == null){
-            string = "NULL";
-        }
-        SpannableString spannableString = new SpannableString(string);
-        return null;
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Log.d(TAG,"onCreateView");
+        return inflater.inflate(R.layout.fragment_test_case_layout,container,false);
     }
 
     @Override
@@ -56,26 +61,58 @@ public class TestCaseFragment extends Fragment {
         if(device == null){
             return;
         }
-        String name = makeString(device.getName());
-        name=name!=null?name:"NULL";
+        SpannableString name = makeString("Name     ",device.getName());
+        SpannableString address = makeString("\nAddress ",device.getAddress());
         textView.setText(name);
-        textView.append("\nAddress:"+device.getAddress());
-        textView.append("\nRSSI:"+scanResult.getRssi());
+        textView.append(address);
         ScanRecord scanRecord = scanResult.getScanRecord();
-        StringBuilder builder = new StringBuilder();
-        byte[] raw = scanRecord.getBytes();
-        for(byte data:raw){
-            builder.append(String.format("%02x",data&0xff)+" ");
+        if(scanRecord!=null){
+            SpannableString advertise = makeString("\nBroadcast  ",convertByteToString(scanRecord.getBytes()));
+            textView.append(advertise);
         }
-        textView.append("\nAdvData:"+builder.toString());
-        scanRecord.getServiceUuids();
-        scanRecord.getManufacturerSpecificData();
+        if(mAdapter == null){
+            mAdapter = new TestCaseAdapter(getContext());
+        }
+        ListView listView = view.findViewById(R.id.device_cases);
+        listView.setAdapter(mAdapter);
     }
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        Log.d(TAG,"onCreateView");
-        return inflater.inflate(R.layout.fragment_test_case_layout,container,false);
+    private SpannableString makeString(String key,String value){
+        if(value == null){
+            value = "NULL";
+        }
+        SpannableString spannableString = new SpannableString(key+":"+value);
+        RelativeSizeSpan keySize = new RelativeSizeSpan(1.2f);
+        spannableString.setSpan(keySize,0,key.length(),Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        return spannableString;
     }
+
+    private String convertByteToString(byte[] bytes){
+        StringBuilder builder = new StringBuilder();
+        for(byte data:bytes){
+            builder.append(String.format("%02x",data&0xff)+" ");
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        Log.d(TAG,"onAttach");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG,"onDestroy");
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        Log.d(TAG,"onDetach");
+
+    }
+
+
 }

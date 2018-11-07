@@ -1,0 +1,26 @@
+<Cases>
+	<Case Enable="true" Title="Pairing Test"
+        Desc="Please press combine key to enter advertise mode"
+        Mode="0">
+        <Config Name="Common" Method="OK+Mute"/>
+	</Case>
+	<Case Enable="true" Title="Voice Test"
+        Desc="Press voice key or click start button to start voice test">
+        <Config Name="Common" Decoder="Adpcm" SampleRate="16" Bitdepth="16"/>
+	</Case>
+	<Case Enable="false" Title="Reconnect test"
+        Desc="Put the device into idle mode, and wait for device to be disconnected,
+        then press any key to reconnect">
+        <Config Name="Common" Timeout="60"/>
+	</Case>
+	<Case Enable="false" Title="Keys test"
+        Desc="Press keys of the remote control one by one, and verify test results">
+		<Config Name="Common">
+			<Key name="KEY_UP" Type="0x0C" Linux="103" Hid="0x42"/>
+			<Key name="KEY_DOWN" Type="0x0C" Linux="108" Hid="0x43"/>
+			<Key name="KEY_ENTER" Type="0x0C" Linux="28" Hid="0x84"/>
+			<Key name="KEY_LEFT" Type="0x0C" Linux="105" Hid="0x44"/>
+			<Key name="KEY_RIGHT" Type="0x0C" Linux="106" Hid="0x45"/>
+		</Config>
+	</Case>
+</Cases>

@@ -12,12 +12,12 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.widget.Toast;
 
 import com.omniremotes.remoteverify.fragment.ScanListFragment;
 import com.omniremotes.remoteverify.fragment.TestCaseFragment;
-import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.CoreServiceManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        CoreServiceManager serviceManager = CoreServiceManager.getInstance();
+        serviceManager.doBind(this);
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if(adapter == null){
             Log.d(TAG,"This device does not support bluetooth");
@@ -56,8 +58,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initUI(){
-        CoreServiceManager serviceManager = CoreServiceManager.getInstance();
-        serviceManager.doBind(this);
+
         ScanListFragment scanListFragment = ScanListFragment.getInstance();
         scanListFragment.registerOnScanListFragmentEvents(new ScanListFragment.OnScanListFragmentEvents() {
             @Override
@@ -67,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         });
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.fragment_main,scanListFragment,"ScanList");
+        fragmentTransaction.replace(R.id.fragment_main,scanListFragment,"ScanList");
         fragmentTransaction.commit();
     }
 
@@ -141,9 +142,21 @@ public class MainActivity extends AppCompatActivity {
         testCaseFragment.setArguments(bundle);
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.addToBackStack(null);
+        //fragmentTransaction.addToBackStack(null);
         fragmentTransaction.replace(R.id.fragment_main,testCaseFragment);
         fragmentTransaction.commit();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_BACK){
+            boolean visible = ScanListFragment.getInstance().isVisible();
+            if(!visible){
+                initUI();
+                return false;
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     @Override

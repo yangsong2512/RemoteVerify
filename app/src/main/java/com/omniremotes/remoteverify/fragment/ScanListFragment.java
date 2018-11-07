@@ -23,7 +23,6 @@ public class ScanListFragment extends Fragment {
     private ScanListAdapter mAdapter;
     private OnScanListFragmentEvents mListener;
     private CoreServiceManager mServiceManager;
-    private boolean mServiceConnected = false;
     public static ScanListFragment getInstance(){
         if(mScanListFragment == null){
             mScanListFragment = new ScanListFragment();
@@ -51,26 +50,23 @@ public class ScanListFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG,"onViewCreated");
-
         ListView listView = view.findViewById(R.id.scan_list);
         if(mAdapter == null){
             mAdapter = new ScanListAdapter(getActivity());
-            mAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
-                @Override
-                public void onDeviceClicked(ScanResult scanResult) {
-                    if(mListener != null){
-                        mListener.onDeviceClicked(scanResult);
-                    }
-                }
-            });
         }
-        listView.setAdapter(mAdapter);
-        if(mServiceManager == null){
-            mServiceManager = CoreServiceManager.getInstance();
-            mServiceManager.registerCoreServiceListener(new CoreServiceListener());
-            if(mServiceManager.isServiceConnected()){
-                //TODO
+        mAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
+            @Override
+            public void onDeviceClicked(ScanResult scanResult) {
+                if(mListener != null){
+                    mListener.onDeviceClicked(scanResult);
+                }
             }
+        });
+        listView.setAdapter(mAdapter);
+        mServiceManager = CoreServiceManager.getInstance();
+        mServiceManager.registerCoreServiceListener(new CoreServiceListener());
+        if(mServiceManager.isServiceConnected()){
+            mServiceManager.startScan();
         }
     }
 
@@ -83,6 +79,9 @@ public class ScanListFragment extends Fragment {
         @Override
         public void onServiceConnected() {
             Log.d(TAG,"core service connected");
+            if(mServiceManager != null){
+                mServiceManager.startScan();
+            }
         }
 
         @Override
@@ -93,6 +92,11 @@ public class ScanListFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        Log.d(TAG,"hidden changed:"+hidden);
+    }
 
     @Override
     public void onAttach(Context context) {
@@ -110,7 +114,11 @@ public class ScanListFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         if(mServiceManager != null){
+            mServiceManager.stopScan();
             mServiceManager.unRegisterCoreServiceListener();
+        }
+        if(mAdapter != null){
+            mAdapter.clearDataSet();
         }
         Log.d(TAG,"onDestroy");
     }

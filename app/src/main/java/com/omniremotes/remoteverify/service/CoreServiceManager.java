@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 import static android.content.Context.BIND_AUTO_CREATE;
 
@@ -62,7 +63,6 @@ public class CoreServiceManager {
                     }
                 }
             });
-
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -85,5 +85,29 @@ public class CoreServiceManager {
 
     public boolean isServiceConnected() {
         return mServiceConnected;
+    }
+
+    public boolean stopScan(){
+        if(mService == null){
+            return false;
+        }
+        try{
+            return mService.stopScan();
+        }catch (RemoteException e){
+            Log.d(TAG,""+e);
+        }
+        return false;
+    }
+
+    public boolean startScan(){
+        if(mService == null){
+            return false;
+        }
+        try{
+            return mService.startScan();
+        }catch (RemoteException e){
+            Log.d(TAG,""+e);
+        }
+        return false;
     }
 }
