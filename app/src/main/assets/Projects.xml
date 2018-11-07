@@ -4,7 +4,7 @@
         Mode="0">
         <Config Name="Common" Method="OK+Mute"/>
 	</Case>
-	<Case Enable="true" Title="Voice Test"
+	<Case Enable="false" Title="Voice Test"
         Desc="Press voice key or click start button to start voice test">
         <Config Name="Common" Decoder="Adpcm" SampleRate="16" Bitdepth="16"/>
 	</Case>

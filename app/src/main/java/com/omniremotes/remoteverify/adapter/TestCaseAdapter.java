@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.omniremotes.remoteverify.R;
+import com.omniremotes.remoteverify.dialog.PairingDialog;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -166,7 +167,14 @@ public class TestCaseAdapter extends BaseAdapter {
             viewHolder = new ViewHolder();
             viewHolder.titleTextView = convertView.findViewById(R.id.test_case_title);
             viewHolder.descTextView = convertView.findViewById(R.id.test_case_description);
-            //viewHolder.startButton = convertView.findViewById(R.id.test_case_run);
+            viewHolder.startButton = convertView.findViewById(R.id.test_case_run);
+            viewHolder.startButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    PairingDialog dialog = new PairingDialog(mContext);
+                    dialog.show();
+                }
+            });
             convertView.setTag(viewHolder);
         }else{
             viewHolder =(ViewHolder) convertView.getTag();
