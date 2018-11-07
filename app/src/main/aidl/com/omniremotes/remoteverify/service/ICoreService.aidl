@@ -13,6 +13,7 @@ interface ICoreService {
     //void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
     //        double aDouble, String aString);
     void initHid();
-    boolean startScan();
+    boolean startScan(String address,int scanMode);
     boolean stopScan();
+    void startPair(String address);
 }

@@ -22,6 +22,8 @@ import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.TestCaseAdapter;
+import com.omniremotes.remoteverify.service.CoreServiceManager;
+import com.omniremotes.remoteverify.service.ICoreServiceListener;
 
 import org.w3c.dom.Text;
 
@@ -71,7 +73,7 @@ public class TestCaseFragment extends Fragment {
             textView.append(advertise);
         }
         if(mAdapter == null){
-            mAdapter = new TestCaseAdapter(getContext());
+            mAdapter = new TestCaseAdapter(getContext(),device.getAddress());
         }
         ListView listView = view.findViewById(R.id.device_cases);
         listView.setAdapter(mAdapter);

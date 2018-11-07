@@ -99,12 +99,12 @@ public class CoreServiceManager {
         return false;
     }
 
-    public boolean startScan(){
+    public boolean startScan(String address,int scanMode){
         if(mService == null){
             return false;
         }
         try{
-            return mService.startScan();
+            return mService.startScan(address,scanMode);
         }catch (RemoteException e){
             Log.d(TAG,""+e);
         }

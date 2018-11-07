@@ -28,6 +28,7 @@ public class TestCaseAdapter extends BaseAdapter {
     private static final String TAG="RemoteVerify-TestCaseAdapter";
     private Context mContext;
     private List<TestCase> mTestCaseList;
+    private String mTestDeviceAddress;
     private class TestCase{
         String title;
         String desc;
@@ -42,8 +43,9 @@ public class TestCaseAdapter extends BaseAdapter {
         Button startButton;
     }
 
-    public TestCaseAdapter(Context context){
+    public TestCaseAdapter(Context context,String deviceAddress){
         mContext = context;
+        mTestDeviceAddress = deviceAddress;
         if(mTestCaseList == null){
             mTestCaseList = new ArrayList<>();
         }

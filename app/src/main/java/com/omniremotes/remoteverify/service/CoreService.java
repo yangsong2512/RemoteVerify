@@ -26,6 +26,7 @@ public class CoreService extends Service {
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
     private OnCoreServiceEvents mListener;
+    private String mPairingAddress;
 
      static {
         System.loadLibrary("native-lib");
@@ -60,7 +61,7 @@ public class CoreService extends Service {
                     int preState = intent.getIntExtra(BluetoothAdapter.EXTRA_PREVIOUS_STATE,BluetoothAdapter.ERROR);
                     if(state == BluetoothAdapter.STATE_ON){
                         mEnabled = true;
-                        startScan();
+                        startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
                     }
                 }
                 break;
@@ -83,11 +84,18 @@ public class CoreService extends Service {
 
         }
 
-        public boolean startScan(){
+        public boolean startScan(String address,int scanMode){
             if(svc== null){
                 return false;
             }
-            return svc.startScan();
+            return svc.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
+        }
+
+        public void startPair(String address){
+            if(svc == null){
+                return;
+            }
+            svc.startPair(address);
         }
 
         public boolean stopScan(){
@@ -125,7 +133,7 @@ public class CoreService extends Service {
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mReceiver,filter);
         if(mEnabled){
-            startScan();
+            startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
         }
     }
 
@@ -139,7 +147,7 @@ public class CoreService extends Service {
         }
     }
 
-    public boolean startScan(){
+    public boolean startScan(String address,int scanMode){
         if(!mEnabled||mScanning){
             Log.d(TAG,"bluetooth is not enabled or is scanning");
             return false;
@@ -152,9 +160,13 @@ public class CoreService extends Service {
         }
 
         ScanFilter.Builder filterBuilder = new ScanFilter.Builder();
+        if(address!=null){
+            filterBuilder.setDeviceAddress(address);
+        }
         ScanFilter filter = filterBuilder.build();
         ScanSettings.Builder settingsBuilder = new ScanSettings.Builder();
         settingsBuilder.setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+        settingsBuilder.setScanMode(scanMode);
         ScanSettings settings = settingsBuilder.build();
         mScanCallback = new DeviceScanCallback();
         bluetoothLeScanner.startScan(Arrays.asList(filter),settings,mScanCallback);
@@ -174,6 +186,17 @@ public class CoreService extends Service {
         mScanCallback = null;
         mScanning = false;
         return true;
+    }
+
+    private void startPair(String device){
+        if(mBluetoothAdapter == null){
+            return;
+        }
+        mPairingAddress = device;
+        if(mScanning){
+            stopScan();
+        }
+        startScan(device,ScanSettings.SCAN_MODE_LOW_LATENCY);
     }
 
     @Override

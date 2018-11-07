@@ -1,6 +1,7 @@
 package com.omniremotes.remoteverify.fragment;
 
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -66,7 +67,7 @@ public class ScanListFragment extends Fragment {
         mServiceManager = CoreServiceManager.getInstance();
         mServiceManager.registerCoreServiceListener(new CoreServiceListener());
         if(mServiceManager.isServiceConnected()){
-            mServiceManager.startScan();
+            mServiceManager.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
         }
     }
 
@@ -80,7 +81,7 @@ public class ScanListFragment extends Fragment {
         public void onServiceConnected() {
             Log.d(TAG,"core service connected");
             if(mServiceManager != null){
-                mServiceManager.startScan();
+                mServiceManager.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
             }
         }
 
