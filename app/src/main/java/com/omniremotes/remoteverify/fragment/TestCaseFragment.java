@@ -20,15 +20,12 @@ import android.widget.TextView;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.TestCaseAdapter;
-import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
-import com.omniremotes.remoteverify.service.CoreServiceManager;
 
 public class TestCaseFragment extends Fragment {
     private static final String TAG="RemoteVerify-TestCaseFragment";
     private TestCaseAdapter mAdapter;
     private TextView mDeviceDetailView;
     private String mDeviceAddress;
-    private CoreServiceManager mServiceManager;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -36,49 +33,10 @@ public class TestCaseFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_test_case_layout,container,false);
     }
 
-    private class BluetoothEventListener implements IBluetoothEventListener{
-        @Override
-        public void onAclConnected(BluetoothDevice device) {
-
-        }
-
-        @Override
-        public void onAclDisconnected(BluetoothDevice device) {
-
-        }
-
-        @Override
-        public void onAclDisconnectRequest(BluetoothDevice device) {
-
-        }
-
-        @Override
-        public void onBondStateChanged(BluetoothDevice device, int preState, int state) {
-
-        }
-
-        @Override
-        public void onConnectionStateChanged(BluetoothDevice device, int preState, int state) {
-
-        }
-    }
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mDeviceDetailView = view.findViewById(R.id.device_detail);
-
-        mServiceManager = CoreServiceManager.getInstance();
-        mServiceManager.registerBluetoothEventListener(new BluetoothEventListener());
-        mAdapter = new TestCaseAdapter(getContext());
-        mAdapter.registerOnStartButtonClicked(new TestCaseAdapter.OnStartButtonClicked() {
-            @Override
-            public void onStartButtonClicked() {
-                if(mServiceManager != null && mDeviceAddress != null){
-                    mServiceManager.startPair(mDeviceAddress);
-                }
-            }
-        });
         ListView listView = view.findViewById(R.id.device_cases);
         listView.setAdapter(mAdapter);
     }

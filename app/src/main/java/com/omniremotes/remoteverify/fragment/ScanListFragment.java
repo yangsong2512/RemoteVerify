@@ -1,7 +1,6 @@
 package com.omniremotes.remoteverify.fragment;
 
 import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -16,15 +15,12 @@ import android.widget.ListView;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
-import com.omniremotes.remoteverify.service.CoreServiceManager;
-import com.omniremotes.remoteverify.interfaces.ICoreServiceListener;
 
 public class ScanListFragment extends Fragment {
     private static final String TAG="RemoteVerify-ScanListFragment";
     private static ScanListFragment mScanListFragment;
     private ScanListAdapter mAdapter;
     private OnScanListFragmentEvents mListener;
-    private CoreServiceManager mServiceManager;
     public static ScanListFragment getInstance(){
         if(mScanListFragment == null){
             mScanListFragment = new ScanListFragment();
@@ -76,25 +72,11 @@ public class ScanListFragment extends Fragment {
             }
         });
         listView.setAdapter(mAdapter);
-        mServiceManager = CoreServiceManager.getInstance();
-        mServiceManager.registerCoreServiceListener(new CoreServiceListener());
-        if(mServiceManager.isServiceConnected()){
-            mServiceManager.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
-        }
     }
 
-    private class CoreServiceListener implements ICoreServiceListener{
-        @Override
-        public void onServiceDisconnected() {
-            Log.d(TAG,"core service disconnected");
-        }
-
-        @Override
-        public void onServiceConnected() {
-            Log.d(TAG,"core service connected");
-            if(mServiceManager != null){
-                mServiceManager.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
-            }
+    public void notifyOnScanResult(ScanResult result){
+        if(mAdapter != null){
+            mAdapter.notifyDataSetChanged(result);
         }
     }
 
@@ -119,10 +101,6 @@ public class ScanListFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(mServiceManager != null){
-            mServiceManager.stopScan();
-            mServiceManager.unRegisterCoreServiceListener();
-        }
         if(mAdapter != null){
             mAdapter.clearDataSet();
         }

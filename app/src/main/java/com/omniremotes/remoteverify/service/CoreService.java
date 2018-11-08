@@ -14,7 +14,7 @@ import android.content.IntentFilter;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.omniremotes.remoteverify.interfaces.ICoreServiceListener;
+import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 
 import java.util.Arrays;
 
@@ -27,10 +27,8 @@ public class CoreService extends Service {
     private boolean mScanning = false;
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
-    private ICoreServiceListener mCoreServiceListener;
-    private String mPairingAddress;
-
-     static {
+    private IBluetoothEventListener mListener;
+    static {
         System.loadLibrary("native-lib");
     }
 
@@ -139,8 +137,8 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
-            if(mCoreServiceListener != null){
-                //mCoreServiceListener.onScanResult(result);
+            if(mListener != null){
+                mListener.onScanResult(result);
             }
         }
     }
@@ -190,10 +188,6 @@ public class CoreService extends Service {
         if(mBluetoothAdapter == null){
             return;
         }
-        if(mCoreServiceListener != null){
-            //mCoreServiceListener.onStartParing();
-        }
-        mPairingAddress = address;
         if(mScanning){
             stopScan();
         }
@@ -212,20 +206,21 @@ public class CoreService extends Service {
         }
     }
 
-    public void registerOnCoreServiceEventsListener(ICoreServiceListener listener){
-        mCoreServiceListener = listener;
-    }
-
-    public void unregisterOnCoreServiceEventsListener(){
-        mCoreServiceListener = null;
-    }
-
     public boolean isEnabled(){
         if(mBluetoothAdapter == null){
             return false;
         }
         return mBluetoothAdapter.isEnabled();
     }
+
+    public void registerOnBluetoothEventListener(IBluetoothEventListener listener){
+        mListener = listener;
+    }
+
+    public void unRegisterOnBluetoothEventListener(){
+        mListener = null;
+    }
+
     public native String stringFromJNI();
     public native void initHidNative();
 }
