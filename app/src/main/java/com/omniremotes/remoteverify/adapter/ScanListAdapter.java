@@ -3,11 +3,13 @@ package com.omniremotes.remoteverify.adapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
 
@@ -20,6 +22,10 @@ public class ScanListAdapter extends BaseAdapter {
     private Context mContext;
     public interface OnDeviceClickedListener{
         void onDeviceClicked(ScanResult scanResult);
+    }
+
+    public List<ScanResult> getScanList(){
+        return mScanList;
     }
 
     private class ViewHolder {
@@ -51,6 +57,7 @@ public class ScanListAdapter extends BaseAdapter {
         mContext = context;
         mScanList  = new ArrayList<>();
     }
+
     @Override
     public Object getItem(int position) {
         return mScanList.get(position);
@@ -77,6 +84,21 @@ public class ScanListAdapter extends BaseAdapter {
         }
     };
 
+    private View.OnKeyListener mOnKeyListener = new View.OnKeyListener(){
+        @Override
+        public boolean onKey(View v, int keyCode, KeyEvent event) {
+            Toast.makeText(mContext,"onKeySelect",Toast.LENGTH_SHORT).show();
+            if(keyCode == KeyEvent.KEYCODE_BUTTON_SELECT){
+                ViewHolder viewHolder = (ViewHolder) v.getTag();
+                ScanResult scanResult = viewHolder.getScanResult();
+                if(mListener != null){
+                    mListener.onDeviceClicked(scanResult);
+                }
+            }
+            return false;
+        }
+    };
+
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder viewHolder;
@@ -88,7 +110,8 @@ public class ScanListAdapter extends BaseAdapter {
             viewHolder.rssiView.setBackgroundResource(R.drawable.green_circle);
             viewHolder.infoView = convertView.findViewById(R.id.device_info);
             viewHolder.statusView = convertView.findViewById(R.id.device_status);
-            convertView.setOnClickListener(mOnClickListener);
+            //convertView.setOnClickListener(mOnClickListener);
+            //convertView.setOnKeyListener(mOnKeyListener);
             convertView.setTag(viewHolder);
             convertView.setId(position);
         }else {

@@ -15,6 +15,7 @@ import android.widget.TextView;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.dialog.PairingDialog;
+import com.omniremotes.remoteverify.fragment.ScanListFragment;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -28,7 +29,11 @@ public class TestCaseAdapter extends BaseAdapter {
     private static final String TAG="RemoteVerify-TestCaseAdapter";
     private Context mContext;
     private List<TestCase> mTestCaseList;
-    private String mTestDeviceAddress;
+    private OnStartButtonClicked mListener;
+    public interface OnStartButtonClicked {
+        void onStartButtonClicked();
+    }
+
     private class TestCase{
         String title;
         String desc;
@@ -43,20 +48,21 @@ public class TestCaseAdapter extends BaseAdapter {
         Button startButton;
     }
 
-    public TestCaseAdapter(Context context,String deviceAddress){
+    public TestCaseAdapter(Context context){
         mContext = context;
-        mTestDeviceAddress = deviceAddress;
         if(mTestCaseList == null){
             mTestCaseList = new ArrayList<>();
         }
+    }
+
+    public void parserTestCase(){
         try{
-            InputStream inputStream = context.getAssets().open("Projects.xml");
+            InputStream inputStream = mContext.getAssets().open("Projects.xml");
             Log.d(TAG,"start xml parser");
             new TestCaseParserTask().execute(inputStream);
         }catch (IOException e){
             Log.d(TAG,""+e);
         }
-
     }
 
     private boolean parseCaseAttr(XmlPullParser parser){
@@ -92,7 +98,6 @@ public class TestCaseAdapter extends BaseAdapter {
         XmlPullParser parser = Xml.newPullParser();
         parser.setInput(inputStream,"utf-8");
         int event = parser.getEventType();
-        boolean shouldStop = false;
         boolean skip = false;
         while (true){
             if(event == XmlPullParser.START_DOCUMENT){
@@ -173,8 +178,9 @@ public class TestCaseAdapter extends BaseAdapter {
             viewHolder.startButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    PairingDialog dialog = new PairingDialog(mContext);
-                    dialog.show();
+                    if(mListener != null){
+                        mListener.onStartButtonClicked();
+                    }
                 }
             });
             convertView.setTag(viewHolder);
@@ -185,5 +191,15 @@ public class TestCaseAdapter extends BaseAdapter {
         viewHolder.titleTextView.setText(testCase.title);
         viewHolder.descTextView.setText(testCase.desc);
         return convertView;
+    }
+
+    public void registerOnStartButtonClicked(OnStartButtonClicked listener){
+        mListener = listener;
+    }
+
+    public void clearDataSet(){
+        if(mTestCaseList!=null){
+            mTestCaseList.clear();
+        }
     }
 }

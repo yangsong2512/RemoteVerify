@@ -14,6 +14,8 @@ import android.content.IntentFilter;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.omniremotes.remoteverify.interfaces.ICoreServiceListener;
+
 import java.util.Arrays;
 
 public class CoreService extends Service {
@@ -25,15 +27,11 @@ public class CoreService extends Service {
     private boolean mScanning = false;
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
-    private OnCoreServiceEvents mListener;
+    private ICoreServiceListener mCoreServiceListener;
     private String mPairingAddress;
 
      static {
         System.loadLibrary("native-lib");
-    }
-
-    public interface OnCoreServiceEvents{
-        void onScanResults(ScanResult scanResult);
     }
 
     private static CoreService sCoreService;
@@ -141,8 +139,8 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
-            if(mListener != null){
-                mListener.onScanResults(result);
+            if(mCoreServiceListener != null){
+                //mCoreServiceListener.onScanResult(result);
             }
         }
     }
@@ -188,15 +186,18 @@ public class CoreService extends Service {
         return true;
     }
 
-    private void startPair(String device){
+    public void startPair(String address){
         if(mBluetoothAdapter == null){
             return;
         }
-        mPairingAddress = device;
+        if(mCoreServiceListener != null){
+            //mCoreServiceListener.onStartParing();
+        }
+        mPairingAddress = address;
         if(mScanning){
             stopScan();
         }
-        startScan(device,ScanSettings.SCAN_MODE_LOW_LATENCY);
+        startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
     }
 
     @Override
@@ -211,12 +212,12 @@ public class CoreService extends Service {
         }
     }
 
-    public void registerOnCoreServiceEventsListener(OnCoreServiceEvents listener){
-        mListener = listener;
+    public void registerOnCoreServiceEventsListener(ICoreServiceListener listener){
+        mCoreServiceListener = listener;
     }
 
     public void unregisterOnCoreServiceEventsListener(){
-        mListener = null;
+        mCoreServiceListener = null;
     }
 
     public boolean isEnabled(){

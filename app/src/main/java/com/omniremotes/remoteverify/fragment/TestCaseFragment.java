@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.text.Html;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
@@ -18,28 +17,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.TestCaseAdapter;
+import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 import com.omniremotes.remoteverify.service.CoreServiceManager;
-import com.omniremotes.remoteverify.service.ICoreServiceListener;
-
-import org.w3c.dom.Text;
-
-import java.io.UnsupportedEncodingException;
 
 public class TestCaseFragment extends Fragment {
     private static final String TAG="RemoteVerify-TestCaseFragment";
-    static private TestCaseFragment mTestCaseFragment;
     private TestCaseAdapter mAdapter;
-    public static TestCaseFragment getInstance(){
-        if(mTestCaseFragment == null){
-            mTestCaseFragment = new TestCaseFragment();
-        }
-        return mTestCaseFragment;
-    }
-
+    private TextView mDeviceDetailView;
+    private String mDeviceAddress;
+    private CoreServiceManager mServiceManager;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -47,34 +36,49 @@ public class TestCaseFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_test_case_layout,container,false);
     }
 
+    private class BluetoothEventListener implements IBluetoothEventListener{
+        @Override
+        public void onAclConnected(BluetoothDevice device) {
+
+        }
+
+        @Override
+        public void onAclDisconnected(BluetoothDevice device) {
+
+        }
+
+        @Override
+        public void onAclDisconnectRequest(BluetoothDevice device) {
+
+        }
+
+        @Override
+        public void onBondStateChanged(BluetoothDevice device, int preState, int state) {
+
+        }
+
+        @Override
+        public void onConnectionStateChanged(BluetoothDevice device, int preState, int state) {
+
+        }
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        TextView textView = view.findViewById(R.id.device_detail);
-        Bundle bundle = getArguments();
-        if(bundle == null){
-            return;
-        }
-        ScanResult scanResult = bundle.getParcelable("ScanResult");
-        if(scanResult == null){
-            return;
-        }
-        BluetoothDevice device = scanResult.getDevice();
-        if(device == null){
-            return;
-        }
-        SpannableString name = makeString("Name     ",device.getName());
-        SpannableString address = makeString("\nAddress ",device.getAddress());
-        textView.setText(name);
-        textView.append(address);
-        ScanRecord scanRecord = scanResult.getScanRecord();
-        if(scanRecord!=null){
-            SpannableString advertise = makeString("\nBroadcast  ",convertByteToString(scanRecord.getBytes()));
-            textView.append(advertise);
-        }
-        if(mAdapter == null){
-            mAdapter = new TestCaseAdapter(getContext(),device.getAddress());
-        }
+        mDeviceDetailView = view.findViewById(R.id.device_detail);
+
+        mServiceManager = CoreServiceManager.getInstance();
+        mServiceManager.registerBluetoothEventListener(new BluetoothEventListener());
+        mAdapter = new TestCaseAdapter(getContext());
+        mAdapter.registerOnStartButtonClicked(new TestCaseAdapter.OnStartButtonClicked() {
+            @Override
+            public void onStartButtonClicked() {
+                if(mServiceManager != null && mDeviceAddress != null){
+                    mServiceManager.startPair(mDeviceAddress);
+                }
+            }
+        });
         ListView listView = view.findViewById(R.id.device_cases);
         listView.setAdapter(mAdapter);
     }
@@ -116,5 +120,23 @@ public class TestCaseFragment extends Fragment {
 
     }
 
+    public void notifyOnDeviceClicked(ScanResult scanResult){
+        BluetoothDevice device = scanResult.getDevice();
+        if(device == null){
+            return;
+        }
+        mDeviceAddress = device.getAddress();
+        SpannableString name = makeString("Name     ",device.getName());
+        SpannableString address = makeString("\nAddress ",mDeviceAddress);
+        mDeviceDetailView.setText(name);
+        mDeviceDetailView.append(address);
+        ScanRecord scanRecord = scanResult.getScanRecord();
+        if(scanRecord!=null){
+            SpannableString advertise = makeString("\nBroadcast  ",convertByteToString(scanRecord.getBytes()));
+            mDeviceDetailView.append(advertise);
+        }
+        mAdapter.clearDataSet();
+        mAdapter.parserTestCase();
+    }
 
 }

@@ -11,12 +11,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
 import com.omniremotes.remoteverify.service.CoreServiceManager;
-import com.omniremotes.remoteverify.service.ICoreServiceListener;
+import com.omniremotes.remoteverify.interfaces.ICoreServiceListener;
 
 public class ScanListFragment extends Fragment {
     private static final String TAG="RemoteVerify-ScanListFragment";
@@ -47,11 +48,22 @@ public class ScanListFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_scan_list_layout,container,false);
     }
 
+    private AdapterView.OnItemClickListener mOnItemClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            ScanResult scanResult = mAdapter.getScanList().get(position);
+            if(mListener!=null){
+                mListener.onDeviceClicked(scanResult);
+            }
+        }
+    };
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG,"onViewCreated");
         ListView listView = view.findViewById(R.id.scan_list);
+        listView.setOnItemClickListener(mOnItemClickListener);
         if(mAdapter == null){
             mAdapter = new ScanListAdapter(getActivity());
         }
@@ -82,13 +94,6 @@ public class ScanListFragment extends Fragment {
             Log.d(TAG,"core service connected");
             if(mServiceManager != null){
                 mServiceManager.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
-            }
-        }
-
-        @Override
-        public void onScanResult(ScanResult result) {
-            if(mAdapter != null){
-                mAdapter.notifyDataSetChanged(result);
             }
         }
     }

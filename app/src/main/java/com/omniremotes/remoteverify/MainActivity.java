@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
     private static final int REQUEST_BLUETOOTH_ENABLE = 0;
     private static final int REQUEST_NECESSARY_PERMISSIONS = 1;
+    private TestCaseFragment mTestCaseFragment;
     public static String[] mBluetoothPermissions = new String[]{
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -58,12 +59,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initUI(){
+        initScanListFragment();
+        initTestCaseFragment();
+    }
+    private void initTestCaseFragment(){
+        mTestCaseFragment = new TestCaseFragment();
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        //fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.replace(R.id.test_case_fragment,mTestCaseFragment);
+        fragmentTransaction.commit();
+    }
+
+    private void initScanListFragment(){
 
         ScanListFragment scanListFragment = ScanListFragment.getInstance();
         scanListFragment.registerOnScanListFragmentEvents(new ScanListFragment.OnScanListFragmentEvents() {
             @Override
             public void onDeviceClicked(ScanResult result) {
-                switch2TestCaseFragment(result);
+                if(mTestCaseFragment != null){
+                    mTestCaseFragment.notifyOnDeviceClicked(result);
+                }
             }
         });
         FragmentManager fragmentManager = getSupportFragmentManager();
@@ -135,17 +151,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void switch2TestCaseFragment(ScanResult scanResult){
-        TestCaseFragment testCaseFragment = TestCaseFragment.getInstance();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable("ScanResult",scanResult);
-        testCaseFragment.setArguments(bundle);
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        //fragmentTransaction.addToBackStack(null);
-        fragmentTransaction.replace(R.id.fragment_main,testCaseFragment);
-        fragmentTransaction.commit();
-    }
+
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {

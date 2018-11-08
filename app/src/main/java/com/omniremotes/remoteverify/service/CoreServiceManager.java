@@ -8,6 +8,10 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
+
+import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
+import com.omniremotes.remoteverify.interfaces.ICoreServiceListener;
+
 import static android.content.Context.BIND_AUTO_CREATE;
 
 public class CoreServiceManager {
@@ -16,6 +20,7 @@ public class CoreServiceManager {
     private static CoreServiceManager mServiceManager;
     private boolean mServiceConnected = false;
     private ICoreServiceListener mListener;
+    private IBluetoothEventListener mBluetoothEventListener;
     public static CoreServiceManager getInstance(){
         if(mServiceManager == null){
             mServiceManager = new CoreServiceManager();
@@ -51,18 +56,6 @@ public class CoreServiceManager {
             if(mListener != null){
                 mListener.onServiceConnected();
             }
-            CoreService coreService = CoreService.getCoreService();
-            if(coreService == null){
-                return;
-            }
-            coreService.registerOnCoreServiceEventsListener(new CoreService.OnCoreServiceEvents() {
-                @Override
-                public void onScanResults(ScanResult scanResult) {
-                    if(mListener != null){
-                        mListener.onScanResult(scanResult);
-                    }
-                }
-            });
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -76,7 +69,18 @@ public class CoreServiceManager {
     };
 
     public void  registerCoreServiceListener(ICoreServiceListener listener){
-        mListener = listener;
+        Log.d(TAG,"registerCoreServiceListener");
+        CoreService coreService = CoreService.getCoreService();
+        if(coreService == null){
+            Log.e(TAG,"core service is null");
+            return;
+        }
+        coreService.registerOnCoreServiceEventsListener(listener);
+    }
+
+    public void registerBluetoothEventListener(IBluetoothEventListener listener){
+        if(mService!=null){
+        }
     }
 
     public void unRegisterCoreServiceListener(){
@@ -109,5 +113,16 @@ public class CoreServiceManager {
             Log.d(TAG,""+e);
         }
         return false;
+    }
+
+    public void startPair(String address){
+        if(mService == null){
+            return ;
+        }
+        try{
+            mService.startPair(address);
+        }catch (RemoteException e){
+            Log.d(TAG,""+e);
+        }
     }
 }
