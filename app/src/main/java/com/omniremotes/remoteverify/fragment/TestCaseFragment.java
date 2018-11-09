@@ -43,7 +43,7 @@ public class TestCaseFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mAdapter = new TestCaseAdapter(getContext(),mDeviceAddress);
+        mAdapter = new TestCaseAdapter(getContext(),this,mDeviceAddress);
         mDeviceDetailView = view.findViewById(R.id.device_detail);
         mDeviceStatusView = view.findViewById(R.id.device_status);
         ListView listView = view.findViewById(R.id.device_cases);
@@ -131,6 +131,8 @@ public class TestCaseFragment extends Fragment {
 
     public void notifyConnectionStateChanged(BluetoothDevice device,int preState,int state){
         String address = device.getAddress();
+        Log.d(TAG,"inAddr:"+address);
+        Log.d(TAG,"oriAddr:"+mDeviceAddress);
         if(address.equals(mDeviceAddress)){
             if(state == BluetoothProfile.STATE_CONNECTING){
                 mDeviceStatusView.setText("Device is connecting");

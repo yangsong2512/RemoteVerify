@@ -45,8 +45,9 @@ public class TestCaseAdapter extends BaseAdapter {
         ProgressBar progressBar;
     }
 
-    public TestCaseAdapter(Context context,String address){
+    public TestCaseAdapter(Context context,TestCaseFragment testCaseFragment,String address){
         mContext = context;
+        mTestCaseFragment = testCaseFragment;
         if(mTestCaseList == null){
             mTestCaseList = new ArrayList<>();
         }
@@ -192,7 +193,7 @@ public class TestCaseAdapter extends BaseAdapter {
         viewHolder.titleTextView.setText(testCase.title);
         viewHolder.descTextView.setText(testCase.desc);
         if(mCurrentCase != null){
-            if(mCurrentCase.equals("Pairing test")){
+            if(mCurrentCase.equals("Pairing Test")){
                 if(testCase.success){
                     viewHolder.startButton.setVisibility(View.VISIBLE);
                     viewHolder.progressBar.setVisibility(View.GONE);
@@ -207,18 +208,20 @@ public class TestCaseAdapter extends BaseAdapter {
     }
 
     public void notifyDeviceConnected(String address){
-
-    }
-
-    public void notifyPairSuccess(){
-        if(mCurrentCase.equals("Pairing test")){
+        Log.d(TAG,"pair success:"+mCurrentCase);
+        if(mCurrentCase.equals("Pairing Test")){
             for(TestCase testCase:mTestCaseList){
                 if(testCase.title.equals(mCurrentCase)){
+                    Log.d(TAG,"update status");
                     testCase.success=true;
                     notifyDataSetChanged();
                 }
             }
         }
+    }
+
+    public void notifyPairSuccess(){
+
     }
 
     public void clearDataSet(){

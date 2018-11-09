@@ -238,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onConnectionStateChanged(BluetoothDevice device, int preState, int state) {
+            Log.d(TAG,"onConnectionStateChanged:preState,"+preState+",state:"+state);
             mTestCaseFragment.notifyConnectionStateChanged(device,preState,state);
         }
 
