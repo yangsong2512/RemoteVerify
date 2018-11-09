@@ -2,6 +2,8 @@ package com.omniremotes.remoteverify.service;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -11,11 +13,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 
 import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public class CoreService extends Service {
@@ -28,6 +34,10 @@ public class CoreService extends Service {
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
     private IBluetoothEventListener mListener;
+    private String mPairingAddress;
+    private MyHandler mHandler = new MyHandler();
+    private static final int MESSAGE_START_PAIR = 0;
+    private BluetoothProfile mInputDeviceProxy;
     static {
         System.loadLibrary("native-lib");
     }
@@ -66,6 +76,57 @@ public class CoreService extends Service {
 
                 }
                 break;
+                case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
+                {
+                    int preState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE,BluetoothDevice.ERROR);
+                    int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,BluetoothDevice.ERROR);
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if(state == BluetoothDevice.BOND_BONDED){
+                        try{
+                            if(mInputDeviceProxy != null){
+                                Method method =  mInputDeviceProxy.getClass().getMethod("connect",
+                                        BluetoothDevice.class);
+                                method.invoke(mInputDeviceProxy,device);
+                            }
+                        }catch (Exception e){
+                            Log.d(TAG,""+e);
+                        }
+                        mPairingAddress = null;
+                    }
+                    if(mListener != null){
+                        mListener.onBondStateChanged(device,preState,state);
+                    }
+                }
+                break;
+                case BluetoothDevice.ACTION_ACL_CONNECTED:
+                {
+                    Log.d(TAG,"ACL connected");
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if(mListener != null){
+                        mListener.onAclConnected(device);
+                    }
+                }
+                break;
+                case BluetoothDevice.ACTION_ACL_DISCONNECTED:
+                {
+                    Log.d(TAG,"ACL disconnected");
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if(mListener != null){
+                        mListener.onAclDisconnected(device);
+                    }
+                }
+                break;
+                case "android.bluetooth.input.profile.action.CONNECTION_STATE_CHANGED":
+                {
+                    int preState = intent.getIntExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE,BluetoothDevice.ERROR);
+                    int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE,BluetoothDevice.ERROR);
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if(mListener != null){
+                        mListener.onConnectionStateChanged(device,preState,state);
+                    }
+                    Log.d(TAG,"preState:"+preState+",state:"+state);
+                }
+                break;
             }
         }
     }
@@ -87,7 +148,7 @@ public class CoreService extends Service {
             return svc.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
         }
 
-        public void startPair(String address){
+        public synchronized void startPair(String address){
             if(svc == null){
                 return;
             }
@@ -113,6 +174,22 @@ public class CoreService extends Service {
         sCoreService = instance;
     }
 
+    private BluetoothProfile.ServiceListener mServiceListener = new BluetoothProfile.ServiceListener() {
+        @Override
+        public void onServiceConnected(int profile, BluetoothProfile proxy) {
+            if(profile == 4){
+                mInputDeviceProxy = proxy;
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(int profile) {
+            if(profile == 4){
+                mInputDeviceProxy = null;
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -122,11 +199,17 @@ public class CoreService extends Service {
             Log.d(TAG,"Device dose not support bluetooth");
             return;
         }
+        mBluetoothAdapter.getProfileProxy(getBaseContext(),mServiceListener,4);
         mEnabled = mBluetoothAdapter.isEnabled();
         mBinder = new CoreServiceBinder(this);
         setCoreService(this);
         mReceiver = new BluetoothEventReceiver();
         IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        filter.addAction("android.bluetooth.input.profile.action.CONNECTION_STATE_CHANGED");
         registerReceiver(mReceiver,filter);
         if(mEnabled){
             startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
@@ -137,9 +220,35 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
+            if(mPairingAddress != null){
+                BluetoothDevice device = result.getDevice();
+                String address = device.getAddress();
+                if(address.equals(mPairingAddress)){
+                    stopScan();
+                    mHandler.sendMessage(mHandler.obtainMessage(MESSAGE_START_PAIR,device));
+                }
+            }
             if(mListener != null){
                 mListener.onScanResult(result);
             }
+        }
+    }
+
+    private class MyHandler extends Handler{
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case MESSAGE_START_PAIR:
+                {
+                    BluetoothDevice device = (BluetoothDevice) msg.obj;
+                    if(device != null){
+                        Log.d(TAG,"start to create bond");
+                        device.createBond();
+                    }
+                }
+                break;
+            }
+            super.handleMessage(msg);
         }
     }
 
@@ -188,9 +297,10 @@ public class CoreService extends Service {
         if(mBluetoothAdapter == null){
             return;
         }
-        if(mScanning){
-            stopScan();
-        }
+        mPairingAddress = address;
+        stopScan();
+        Log.d(TAG,"onStartPair");
+        SystemClock.sleep(500);
         startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
     }
 

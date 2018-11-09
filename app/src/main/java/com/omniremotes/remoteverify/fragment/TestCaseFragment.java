@@ -1,6 +1,7 @@
 package com.omniremotes.remoteverify.fragment;
 
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
@@ -25,7 +26,13 @@ public class TestCaseFragment extends Fragment {
     private static final String TAG="RemoteVerify-TestCaseFragment";
     private TestCaseAdapter mAdapter;
     private TextView mDeviceDetailView;
+    private TextView mDeviceStatusView;
     private String mDeviceAddress;
+    private OnTestCaseFragmentEventListener mListener;
+    private String mCurrentCase;
+    public interface OnTestCaseFragmentEventListener{
+        void onStartButtonClicked(String testCase,String address);
+    }
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -36,7 +43,9 @@ public class TestCaseFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        mAdapter = new TestCaseAdapter(getContext(),mDeviceAddress);
         mDeviceDetailView = view.findViewById(R.id.device_detail);
+        mDeviceStatusView = view.findViewById(R.id.device_status);
         ListView listView = view.findViewById(R.id.device_cases);
         listView.setAdapter(mAdapter);
     }
@@ -88,6 +97,7 @@ public class TestCaseFragment extends Fragment {
         SpannableString address = makeString("\nAddress ",mDeviceAddress);
         mDeviceDetailView.setText(name);
         mDeviceDetailView.append(address);
+        mDeviceStatusView.setText("Not paired");
         ScanRecord scanRecord = scanResult.getScanRecord();
         if(scanRecord!=null){
             SpannableString advertise = makeString("\nBroadcast  ",convertByteToString(scanRecord.getBytes()));
@@ -97,4 +107,51 @@ public class TestCaseFragment extends Fragment {
         mAdapter.parserTestCase();
     }
 
+    public void  registerOnTestCaseFragmentEventListener(OnTestCaseFragmentEventListener listener){
+        mListener = listener;
+    }
+
+    public void onStartButtonClicked(String testCase){
+        if(mListener != null){
+            mListener.onStartButtonClicked(testCase,mDeviceAddress);
+        }
+    }
+
+    public void notifyBondStateChanged(BluetoothDevice device,int preState,int state){
+        String address = device.getAddress();
+        if(address.equals(mDeviceAddress)){
+            if(state == BluetoothDevice.BOND_BONDING){
+                mDeviceStatusView.setText("Device is pairing");
+            }else if(state == BluetoothDevice.BOND_BONDED){
+                mDeviceStatusView.setText("Device is paired");
+                mAdapter.notifyPairSuccess();
+            }
+        }
+    }
+
+    public void notifyConnectionStateChanged(BluetoothDevice device,int preState,int state){
+        String address = device.getAddress();
+        if(address.equals(mDeviceAddress)){
+            if(state == BluetoothProfile.STATE_CONNECTING){
+                mDeviceStatusView.setText("Device is connecting");
+            }else if(state == BluetoothProfile.STATE_CONNECTED){
+                mDeviceStatusView.setText("Device is connected");
+                mAdapter.notifyDeviceConnected(address);
+            }
+        }
+    }
+
+    public void notifyAclDisconnected(BluetoothDevice device){
+        String address = device.getAddress();
+        if(address.equals(mDeviceAddress)){
+            mDeviceStatusView.setText("Device ACL disconnected");
+        }
+    }
+
+    public void notifyAclConnected(BluetoothDevice device){
+        String address = device.getAddress();
+        if(address.equals(mDeviceAddress)){
+            mDeviceStatusView.setText("Device ACL connected");
+        }
+    }
 }

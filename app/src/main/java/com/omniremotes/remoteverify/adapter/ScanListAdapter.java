@@ -37,7 +37,7 @@ public class ScanListAdapter extends BaseAdapter {
         }
         TextView rssiView;
         TextView infoView;
-        TextView statusView;
+        //TextView statusView;
         ScanResult scanResult;
 
         private void setScanResult(ScanResult scanResult) {
@@ -109,7 +109,7 @@ public class ScanListAdapter extends BaseAdapter {
             viewHolder.rssiView = convertView.findViewById(R.id.device_rssi);
             viewHolder.rssiView.setBackgroundResource(R.drawable.green_circle);
             viewHolder.infoView = convertView.findViewById(R.id.device_info);
-            viewHolder.statusView = convertView.findViewById(R.id.device_status);
+            //viewHolder.statusView = convertView.findViewById(R.id.device_status);
             //convertView.setOnClickListener(mOnClickListener);
             //convertView.setOnKeyListener(mOnKeyListener);
             convertView.setTag(viewHolder);

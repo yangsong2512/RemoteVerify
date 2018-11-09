@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
@@ -103,6 +104,20 @@ public class MainActivity extends AppCompatActivity {
     }
     private void initTestCaseFragment(){
         mTestCaseFragment = new TestCaseFragment();
+        mTestCaseFragment.registerOnTestCaseFragmentEventListener(new TestCaseFragment.OnTestCaseFragmentEventListener() {
+            @Override
+            public void onStartButtonClicked(String testCase,String address) {
+                if(mService != null){
+                    if(testCase.equals("Pairing Test")){
+                        try{
+                            mService.startPair(address);
+                        }catch (RemoteException e){
+                            Log.d(TAG,""+e);
+                        }
+                    }
+                }
+            }
+        });
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.test_case_fragment,mTestCaseFragment);
@@ -223,12 +238,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onConnectionStateChanged(BluetoothDevice device, int preState, int state) {
-
+            mTestCaseFragment.notifyConnectionStateChanged(device,preState,state);
         }
 
         @Override
         public void onBondStateChanged(BluetoothDevice device, int preState, int state) {
-
+            mTestCaseFragment.notifyBondStateChanged(device,preState,state);
         }
 
         @Override
@@ -238,12 +253,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onAclDisconnected(BluetoothDevice device) {
-
+            mTestCaseFragment.notifyAclDisconnected(device);
         }
 
         @Override
         public void onAclConnected(BluetoothDevice device) {
-
+            mTestCaseFragment.notifyAclConnected(device);
         }
 
         @Override

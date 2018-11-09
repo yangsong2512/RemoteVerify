@@ -1,9 +1,7 @@
 package com.omniremotes.remoteverify.adapter;
 
 import android.content.Context;
-import android.nfc.Tag;
 import android.os.AsyncTask;
-import android.renderscript.ScriptGroup;
 import android.util.Log;
 import android.util.Xml;
 import android.view.LayoutInflater;
@@ -11,14 +9,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.omniremotes.remoteverify.R;
-import com.omniremotes.remoteverify.dialog.PairingDialog;
-import com.omniremotes.remoteverify.fragment.ScanListFragment;
+import com.omniremotes.remoteverify.fragment.TestCaseFragment;
 
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,14 +26,13 @@ public class TestCaseAdapter extends BaseAdapter {
     private static final String TAG="RemoteVerify-TestCaseAdapter";
     private Context mContext;
     private List<TestCase> mTestCaseList;
-    private OnStartButtonClicked mListener;
-    public interface OnStartButtonClicked {
-        void onStartButtonClicked();
-    }
-
+    private TestCaseFragment mTestCaseFragment;
+    private String mCurrentCase = null;
     private class TestCase{
         String title;
         String desc;
+        boolean success;
+        int errorCode;
         TestCase(String title,String desc){
             this.title = title;
             this.desc = desc;
@@ -46,9 +42,10 @@ public class TestCaseAdapter extends BaseAdapter {
         TextView titleTextView;
         TextView descTextView;
         Button startButton;
+        ProgressBar progressBar;
     }
 
-    public TestCaseAdapter(Context context){
+    public TestCaseAdapter(Context context,String address){
         mContext = context;
         if(mTestCaseList == null){
             mTestCaseList = new ArrayList<>();
@@ -166,20 +163,24 @@ public class TestCaseAdapter extends BaseAdapter {
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder viewHolder;
+    public View getView(final int position, View convertView, ViewGroup parent) {
+        final ViewHolder viewHolder;
         if(convertView == null){
             LayoutInflater layoutInflater = LayoutInflater.from(mContext);
             convertView = layoutInflater.inflate(R.layout.test_case_list_item,parent,false);
             viewHolder = new ViewHolder();
             viewHolder.titleTextView = convertView.findViewById(R.id.test_case_title);
             viewHolder.descTextView = convertView.findViewById(R.id.test_case_description);
+            viewHolder.progressBar = convertView.findViewById(R.id.test_case_progress);
             viewHolder.startButton = convertView.findViewById(R.id.test_case_run);
             viewHolder.startButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if(mListener != null){
-                        mListener.onStartButtonClicked();
+                    if(mTestCaseFragment != null){
+                        viewHolder.startButton.setVisibility(View.GONE);
+                        viewHolder.progressBar.setVisibility(View.VISIBLE);
+                        mCurrentCase = mTestCaseList.get(position).title;
+                        mTestCaseFragment.onStartButtonClicked(mCurrentCase);
                     }
                 }
             });
@@ -190,11 +191,34 @@ public class TestCaseAdapter extends BaseAdapter {
         TestCase testCase = mTestCaseList.get(position);
         viewHolder.titleTextView.setText(testCase.title);
         viewHolder.descTextView.setText(testCase.desc);
+        if(mCurrentCase != null){
+            if(mCurrentCase.equals("Pairing test")){
+                if(testCase.success){
+                    viewHolder.startButton.setVisibility(View.VISIBLE);
+                    viewHolder.progressBar.setVisibility(View.GONE);
+                }
+            }
+        }
         return convertView;
     }
 
-    public void registerOnStartButtonClicked(OnStartButtonClicked listener){
-        mListener = listener;
+    public void notifyPairFailed(){
+
+    }
+
+    public void notifyDeviceConnected(String address){
+
+    }
+
+    public void notifyPairSuccess(){
+        if(mCurrentCase.equals("Pairing test")){
+            for(TestCase testCase:mTestCaseList){
+                if(testCase.title.equals(mCurrentCase)){
+                    testCase.success=true;
+                    notifyDataSetChanged();
+                }
+            }
+        }
     }
 
     public void clearDataSet(){
