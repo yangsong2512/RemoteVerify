@@ -13,7 +13,7 @@
         then press any key to reconnect">
         <Config Name="Common" Timeout="60"/>
 	</Case>
-	<Case Enable="false" Title="Keys test"
+	<Case Enable="false" Title="Keys Test"
         Desc="Press keys of the remote control one by one, and verify test results">
 		<Config Name="Common">
 			<Key name="KEY_UP" Type="0x0C" Linux="103" Hid="0x42"/>

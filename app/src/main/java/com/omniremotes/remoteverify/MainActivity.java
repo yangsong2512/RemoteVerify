@@ -27,6 +27,7 @@ import com.omniremotes.remoteverify.fragment.TestCaseFragment;
 import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.ICoreService;
+import com.omniremotes.remoteverify.service.IVoiceService;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
@@ -40,7 +41,8 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
     };
-    private ICoreService mService;
+    private ICoreService mCoreService;
+    private IVoiceService mVoiceService;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,17 +73,26 @@ public class MainActivity extends AppCompatActivity {
 
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
             Log.e(TAG,"onServiceConnected");
-            mService = ICoreService.Stub.asInterface(service);
-            if(mService == null){
-                Log.d(TAG,"service is null");
+            String className = componentName.getClassName();
+            if(className.equals("com.omniremotes.remoteverify.service.CoreService")){
+                mCoreService = ICoreService.Stub.asInterface(service);
+                if(mCoreService == null){
+                    Log.d(TAG,"service is null");
+                }
+                CoreService coreService = CoreService.getCoreService();
+                if(coreService == null){
+                    return;
+                }
+                coreService.registerOnBluetoothEventListener(new BluetoothEventListener());
+            }else if(className.equals("com.omniremotes.remoteverify.service.VoiceService")){
+                mVoiceService = IVoiceService.Stub.asInterface(service);
+                if(mVoiceService == null){
+                    Log.d(TAG,"voice service is null");
+                }
             }
-            CoreService coreService = CoreService.getCoreService();
-            if(coreService == null){
-                return;
-            }
-            coreService.registerOnBluetoothEventListener(new BluetoothEventListener());
+
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -107,10 +118,10 @@ public class MainActivity extends AppCompatActivity {
         mTestCaseFragment.registerOnTestCaseFragmentEventListener(new TestCaseFragment.OnTestCaseFragmentEventListener() {
             @Override
             public void onStartButtonClicked(String testCase,String address) {
-                if(mService != null){
-                    if(testCase.equals("Pairing Test")){
+                if(mCoreService != null){
+                    if(testCase.equals(getResources().getString(R.string.pair_test))){
                         try{
-                            mService.startPair(address);
+                            mCoreService.startPair(address);
                         }catch (RemoteException e){
                             Log.d(TAG,""+e);
                         }
@@ -225,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mService!=null){
+        if(mCoreService!=null){
             unbindService(mConnection);
         }
     }

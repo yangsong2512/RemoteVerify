@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">RemoteVerify</string>
     <string name="test_case_run">Run</string>
+    <string name="pair_test">Pairing Test</string>
+    <string name="voice_test">Voice Test</string>
+    <string name="key_test">Keys Test</string>
+    <string name="reconnection_test">Reconnect Test</string>
 </resources>

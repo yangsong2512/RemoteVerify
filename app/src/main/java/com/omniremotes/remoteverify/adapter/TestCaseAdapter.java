@@ -193,7 +193,7 @@ public class TestCaseAdapter extends BaseAdapter {
         viewHolder.titleTextView.setText(testCase.title);
         viewHolder.descTextView.setText(testCase.desc);
         if(mCurrentCase != null){
-            if(mCurrentCase.equals("Pairing Test")){
+            if(mCurrentCase.equals(mContext.getResources().getString(R.string.pair_test))){
                 if(testCase.success){
                     viewHolder.startButton.setVisibility(View.VISIBLE);
                     viewHolder.progressBar.setVisibility(View.GONE);
@@ -209,7 +209,7 @@ public class TestCaseAdapter extends BaseAdapter {
 
     public void notifyDeviceConnected(String address){
         Log.d(TAG,"pair success:"+mCurrentCase);
-        if(mCurrentCase.equals("Pairing Test")){
+        if(mCurrentCase.equals(mContext.getResources().getString(R.string.pair_test))){
             for(TestCase testCase:mTestCaseList){
                 if(testCase.title.equals(mCurrentCase)){
                     Log.d(TAG,"update status");
