@@ -23,6 +23,7 @@ import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Set;
 
 public class CoreService extends Service {
     // Used to load the 'native-lib' library on application startup.
@@ -92,6 +93,11 @@ public class CoreService extends Service {
                             Log.d(TAG,""+e);
                         }
                         mPairingAddress = null;
+                    }else if(preState == BluetoothDevice.BOND_BONDED && state == BluetoothDevice.BOND_NONE){
+                        String address = device.getAddress();
+                        if(mPairingAddress != null && mPairingAddress.equals(address)){
+                            startPair(mPairingAddress);
+                        }
                     }
                     if(mListener != null){
                         mListener.onBondStateChanged(device,preState,state);
@@ -293,6 +299,24 @@ public class CoreService extends Service {
         return true;
     }
 
+    private void startPairProcedure(String address){
+        Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
+        for(BluetoothDevice device:devices){
+            String bondedAddress = device.getAddress();
+            if(address.equals(bondedAddress)){
+                try{
+                    Method method =  device.getClass().getMethod("removeBond",
+                            BluetoothDevice.class);
+                    method.setAccessible(true);
+                    method.invoke(device);
+                }catch (Exception e){
+                    Log.d(TAG,""+e);
+                }
+                break;
+            }
+        }
+    }
+
     public void startPair(String address){
         if(mBluetoothAdapter == null){
             return;
@@ -300,6 +324,7 @@ public class CoreService extends Service {
         mPairingAddress = address;
         stopScan();
         Log.d(TAG,"onStartPair");
+        startPairProcedure(address);
         SystemClock.sleep(500);
         startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
     }
