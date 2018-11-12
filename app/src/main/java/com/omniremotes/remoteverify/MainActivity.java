@@ -3,6 +3,7 @@ package com.omniremotes.remoteverify;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanResult;
 import android.content.ComponentName;
 import android.content.Context;
@@ -11,6 +12,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.speech.tts.Voice;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentManager;
@@ -28,6 +30,7 @@ import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.ICoreService;
 import com.omniremotes.remoteverify.service.IVoiceService;
+import com.omniremotes.remoteverify.service.VoiceService;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
@@ -43,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     };
     private ICoreService mCoreService;
     private IVoiceService mVoiceService;
+    private BluetoothDevice mDeviceUnderTest;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +61,17 @@ public class MainActivity extends AppCompatActivity {
             requestEnableBluetooth();
         }else{
             requestNecessaryPermissions();
+        }
+    }
+
+    private void bindVoiceService(Context context){
+        Intent intent = new Intent();
+        intent.setAction("com.omniremotes.remoteverify.service.VoiceService");
+        intent.setComponent(new ComponentName("com.omniremotes.remoteverify","com.omniremotes.remoteverify.service.VoiceService"));
+        if(context.bindService(intent,mConnection,BIND_AUTO_CREATE)){
+            Log.d(TAG,"bind voice service success");
+        }else{
+            Log.d(TAG,"failed to bind voice service");
         }
     }
 
@@ -125,6 +140,12 @@ public class MainActivity extends AppCompatActivity {
                         }catch (RemoteException e){
                             Log.d(TAG,""+e);
                         }
+                    }else if(testCase.equals(getResources().getString(R.string.voice_test))){
+                        try{
+                            mVoiceService.startVoice();
+                        }catch (RemoteException e){
+                            Log.d(TAG,""+e);
+                        }
                     }
                 }
             }
@@ -135,7 +156,6 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
-
     private void initScanListFragment(){
 
         mScanListFragment = ScanListFragment.getInstance();
@@ -144,6 +164,22 @@ public class MainActivity extends AppCompatActivity {
             public void onDeviceClicked(ScanResult result) {
                 if(mTestCaseFragment != null){
                     mTestCaseFragment.notifyOnDeviceClicked(result);
+                    mDeviceUnderTest = result.getDevice();
+                }
+            }
+
+            @Override
+            public void onPairedDeviceClicked(BluetoothDevice device) {
+                if(mTestCaseFragment != null){
+                    mTestCaseFragment.notifyOnPairedDeviceClicked(device);
+                    mDeviceUnderTest = device;
+                    CoreService coreService = CoreService.getCoreService();
+                    if(coreService != null){
+                        if(coreService.isDeviceConnected(device)){
+                            Toast.makeText(getBaseContext(),"device connected",Toast.LENGTH_SHORT).show();
+                            startVoiceService();
+                        }
+                    }
                 }
             }
         });
@@ -151,6 +187,12 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.fragment_main,mScanListFragment,"ScanList");
         fragmentTransaction.commit();
+    }
+
+    private void startVoiceService(){
+        Intent intent = new Intent(MainActivity.this,VoiceService.class);
+        intent.putExtra("Device",mDeviceUnderTest);
+        startService(intent);
     }
 
     public void requestEnableBluetooth(){
@@ -217,18 +259,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if(keyCode == KeyEvent.KEYCODE_BACK){
-            boolean visible = ScanListFragment.getInstance().isVisible();
-            if(!visible){
-                initUI();
-                return false;
-            }
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         return true;
     }
@@ -236,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopService(new Intent(MainActivity.this,VoiceService.class));
         if(mCoreService!=null){
             unbindService(mConnection);
         }
@@ -249,8 +280,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onConnectionStateChanged(BluetoothDevice device, int preState, int state) {
-            Log.d(TAG,"onConnectionStateChanged:preState,"+preState+",state:"+state);
+            Log.d(TAG,"onConnectionStateChanged:preState,"+preState+
+                    ",state:"+state);
             mTestCaseFragment.notifyConnectionStateChanged(device,preState,state);
+            if(state == BluetoothProfile.STATE_CONNECTED && device.equals(mDeviceUnderTest)){
+                startVoiceService();
+            }
         }
 
         @Override

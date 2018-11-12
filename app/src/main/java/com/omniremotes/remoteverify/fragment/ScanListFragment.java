@@ -1,5 +1,7 @@
 package com.omniremotes.remoteverify.fragment;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.os.Bundle;
@@ -12,14 +14,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
+import com.omniremotes.remoteverify.adapter.DeviceListAdapter;
 import com.omniremotes.remoteverify.adapter.ScanListAdapter;
 
 public class ScanListFragment extends Fragment {
     private static final String TAG="RemoteVerify-ScanListFragment";
     private static ScanListFragment mScanListFragment;
     private ScanListAdapter mAdapter;
+    private DeviceListAdapter mDeviceListAdapter;
     private OnScanListFragmentEvents mListener;
     public static ScanListFragment getInstance(){
         if(mScanListFragment == null){
@@ -29,6 +34,7 @@ public class ScanListFragment extends Fragment {
     }
     public interface OnScanListFragmentEvents{
         void onDeviceClicked(ScanResult result);
+        void onPairedDeviceClicked(BluetoothDevice device);
     }
     public ScanListFragment(){
     }
@@ -54,14 +60,31 @@ public class ScanListFragment extends Fragment {
         }
     };
 
+    private AdapterView.OnItemClickListener mOnPairedDeviceClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            BluetoothDevice device =(BluetoothDevice) mDeviceListAdapter.getItem(position);
+            if(mListener != null){
+                mListener.onPairedDeviceClicked(device);
+            }
+        }
+    };
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         Log.d(TAG,"onViewCreated");
         ListView listView = view.findViewById(R.id.scan_list);
         listView.setOnItemClickListener(mOnItemClickListener);
+        ListView deviceListView = view.findViewById(R.id.device_list);
+        deviceListView.setOnItemClickListener(mOnPairedDeviceClickListener);
         if(mAdapter == null){
             mAdapter = new ScanListAdapter(getActivity());
+        }
+        if(mDeviceListAdapter == null){
+            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            mDeviceListAdapter = new DeviceListAdapter(getActivity(),adapter.getBondedDevices());
+            deviceListView.setAdapter(mDeviceListAdapter);
         }
         mAdapter.registerOnDeviceClickedListener(new ScanListAdapter.OnDeviceClickedListener() {
             @Override

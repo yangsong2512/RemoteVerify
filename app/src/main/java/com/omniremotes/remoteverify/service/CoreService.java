@@ -23,6 +23,7 @@ import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 public class CoreService extends Service {
@@ -81,6 +82,7 @@ public class CoreService extends Service {
                 {
                     int preState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE,BluetoothDevice.ERROR);
                     int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,BluetoothDevice.ERROR);
+                    Log.d(TAG,"bond state changed:preState"+preState+",state:"+state);
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     if(state == BluetoothDevice.BOND_BONDED){
                         try{
@@ -229,7 +231,7 @@ public class CoreService extends Service {
             if(mPairingAddress != null){
                 BluetoothDevice device = result.getDevice();
                 String address = device.getAddress();
-                if(address.equals(mPairingAddress)){
+                if(address.equals(mPairingAddress)&&mScanning){
                     stopScan();
                     mHandler.sendMessage(mHandler.obtainMessage(MESSAGE_START_PAIR,device));
                 }
@@ -299,22 +301,22 @@ public class CoreService extends Service {
         return true;
     }
 
-    private void startPairProcedure(String address){
+    private boolean startPairProcedure(String address){
         Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
         for(BluetoothDevice device:devices){
             String bondedAddress = device.getAddress();
             if(address.equals(bondedAddress)){
                 try{
                     Method method =  device.getClass().getMethod("removeBond",
-                            BluetoothDevice.class);
-                    method.setAccessible(true);
-                    method.invoke(device);
-                }catch (Exception e){
-                    Log.d(TAG,""+e);
+                            (Class[]) null);
+                    method.invoke(device,(Object[]) null);
+                }catch (Exception e) {
+                    Log.d(TAG, "" + e);
                 }
-                break;
+                return false;
             }
         }
+        return true;
     }
 
     public void startPair(String address){
@@ -324,9 +326,10 @@ public class CoreService extends Service {
         mPairingAddress = address;
         stopScan();
         Log.d(TAG,"onStartPair");
-        startPairProcedure(address);
-        SystemClock.sleep(500);
-        startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
+        if(startPairProcedure(address)){
+            SystemClock.sleep(500);
+            startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
+        }
     }
 
     @Override
@@ -350,6 +353,18 @@ public class CoreService extends Service {
 
     public void registerOnBluetoothEventListener(IBluetoothEventListener listener){
         mListener = listener;
+    }
+
+    public boolean isDeviceConnected(BluetoothDevice device){
+        if(mInputDeviceProxy != null){
+            List<BluetoothDevice> connectedDevice = mInputDeviceProxy.getConnectedDevices();
+            for(BluetoothDevice tmp:connectedDevice){
+                if(tmp.equals(device)){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void unRegisterOnBluetoothEventListener(){

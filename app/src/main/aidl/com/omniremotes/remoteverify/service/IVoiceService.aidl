@@ -6,4 +6,5 @@ package com.omniremotes.remoteverify.service;
 interface IVoiceService {
     void startVoice();
     void stopVoice();
+    void connect(String address);
 }

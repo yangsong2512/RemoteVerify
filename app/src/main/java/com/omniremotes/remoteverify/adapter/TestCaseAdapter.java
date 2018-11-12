@@ -106,7 +106,6 @@ public class TestCaseAdapter extends BaseAdapter {
                     continue;
                 }
                 String tagName = parser.getName();
-                Log.d(TAG,"start tag:"+tagName);
                 if(tagName!=null){
                     if(tagName.equals("Case")){
                         if(!parseCaseAttr(parser)){
@@ -119,9 +118,7 @@ public class TestCaseAdapter extends BaseAdapter {
                 if(tagName.equals("Case")){
                     skip = false;
                 }
-                Log.d(TAG,"end tag:"+tagName);
             }else if(event == XmlPullParser.END_DOCUMENT){
-                Log.d(TAG,"END");
                 break;
             }
             event = parser.next();

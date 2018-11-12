@@ -125,6 +125,8 @@ public class TestCaseFragment extends Fragment {
             }else if(state == BluetoothDevice.BOND_BONDED){
                 mDeviceStatusView.setText("Device is paired");
                 mAdapter.notifyPairSuccess();
+            }else if(state == BluetoothDevice.BOND_NONE){
+                mDeviceStatusView.setText("Device is unpaired");
             }
         }
     }
@@ -133,6 +135,9 @@ public class TestCaseFragment extends Fragment {
         String address = device.getAddress();
         Log.d(TAG,"inAddr:"+address);
         Log.d(TAG,"oriAddr:"+mDeviceAddress);
+        if(mDeviceAddress == null){
+            return;
+        }
         if(address.equals(mDeviceAddress)){
             if(state == BluetoothProfile.STATE_CONNECTING){
                 mDeviceStatusView.setText("Device is connecting");
@@ -155,5 +160,18 @@ public class TestCaseFragment extends Fragment {
         if(address.equals(mDeviceAddress)){
             mDeviceStatusView.setText("Device ACL connected");
         }
+    }
+
+    public void notifyOnPairedDeviceClicked(BluetoothDevice device){
+        if(device == null){
+            return;
+        }
+        mDeviceAddress = device.getAddress();
+        SpannableString name = makeString("Name     ",device.getName());
+        SpannableString address = makeString("\nAddress ",mDeviceAddress);
+        mDeviceDetailView.setText(name);
+        mDeviceDetailView.append(address);
+        mAdapter.clearDataSet();
+        mAdapter.parserTestCase();
     }
 }
