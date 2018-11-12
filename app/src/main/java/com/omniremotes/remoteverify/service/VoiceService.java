@@ -29,6 +29,20 @@ public class VoiceService extends Service {
     private BluetoothGattCharacteristic mRXChara;
     private BluetoothGattCharacteristic mCTLChara;
     private BluetoothGatt mBluetoothGatt;
+    private class ATVInfo{
+        short version;
+        short codecSupported;
+        short bytesPerFrame;
+        short bytesPerChara;
+        ATVInfo(short version,short codecSupported,short bytesPerFrame,short bytesPerChara){
+            this.version = version;
+            this.codecSupported = codecSupported;
+            this.bytesPerChara = bytesPerChara;
+            this.bytesPerFrame = bytesPerFrame;
+        }
+    }
+
+    private ATVInfo mATVInfo;
     public static synchronized VoiceService getInstance(){
         if(sVoiceService != null){
             return sVoiceService;
@@ -103,6 +117,7 @@ public class VoiceService extends Service {
     }
 
     private void enableNotification(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic){
+        gatt.setCharacteristicNotification(characteristic,true);
         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
         if(descriptor == null){
             Log.d(TAG,"no ccc descriptor");
@@ -110,6 +125,7 @@ public class VoiceService extends Service {
         }
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         gatt.writeDescriptor(descriptor);
+
     }
 
     private void searchATVVService(BluetoothGatt gatt){
@@ -137,7 +153,7 @@ public class VoiceService extends Service {
 
     private void ATVVGetCapabilities (){
         if(mTXChara != null && mBluetoothGatt!=null){
-            mTXChara.setValue(new byte[]{0x00,0x00,0x00,0x00,0x0A});
+            mTXChara.setValue(new byte[]{0x0A,0x00,0x00,0x00,0x00});
             mBluetoothGatt.writeCharacteristic(mTXChara);
         }
     }
@@ -170,6 +186,9 @@ public class VoiceService extends Service {
                     Log.d(TAG,"start to discover service");
                 }
             }
+            if(newState == BluetoothGatt.STATE_DISCONNECTED){
+                gatt.close();
+            }
         }
 
         @Override
@@ -200,7 +219,21 @@ public class VoiceService extends Service {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-            Log.d(TAG,"onCharacteristicChanged");
+            if(characteristic.equals(mCTLChara)){
+                byte[] bytes = characteristic.getValue();
+                if(bytes[0] == 0x0B){
+                    short version =(byte) (bytes[2]&0xff);
+                    version |=(byte) ((bytes[1]&0xff) << 8);
+                    short codecSupported = (byte)(bytes[4]&0xff);
+                    codecSupported |= (byte)(bytes[3]&0xff<<8);
+                    short bytesPerFrame =(short) (bytes[6]&0xff);
+                    bytesPerFrame |= (byte)(bytes[5]&0xff<<8);
+                    short bytesPerChara =(byte) (bytes[8]&0xff);
+                    bytesPerChara |= (byte)(bytes[7]&0xff<<8);
+                    mATVInfo = new ATVInfo(version,codecSupported,bytesPerFrame,bytesPerChara);
+                    Log.d(TAG,"version:"+version+",codec:"+codecSupported+",bytesPerFrame:"+bytesPerFrame+",bytesPerChara:"+bytesPerChara);
+                }
+            }
         }
 
         @Override
@@ -221,8 +254,8 @@ public class VoiceService extends Service {
                 enableNotification(gatt,mRXChara);
             }else if(descriptor.getCharacteristic().equals(mRXChara)){
                 Log.d(TAG,"rc characteristic descriptor configured");
-                //ATVVGetCapabilities();
-                ATVVOpenMic();
+                ATVVGetCapabilities();
+                //ATVVOpenMic();
             }
         }
 
