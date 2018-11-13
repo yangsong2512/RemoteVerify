@@ -8,10 +8,10 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.content.Intent;
-import android.nfc.Tag;
 import android.os.IBinder;
-import android.speech.tts.Voice;
 import android.util.Log;
+
+import com.omniremotes.remoteverify.decoder.ADPCMDecoder;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,24 +25,23 @@ public class VoiceService extends Service {
     private static final String ATVV_CHAR_RX="AB5E0003-5A21-4F05-BC7D-AF01F617B664";
     private static final String ATVV_CHAR_CTL="AB5E0004-5A21-4F05-BC7D-AF01F617B664";
     private static final String CLIENT_CHARACTERISTIC_CONFIG="00002902-0000-1000-8000-00805F9B34FB";
+    private static final byte AUDIO_STOP = 0x00;
+    private static final byte AUDIO_START = 0x04;
+    private static final byte SEARCH_START = 0x08;
+    private static final byte AUDIO_SYNC = 0x0A;
+    private static final byte GET_CAPS_RESP = 0x0B;
+    private static final byte MIC_OPEN_ERROR = 0x0C;
+    private static final short ADPCM_8K_16BIT = 0x0001;
+    private static final short ADPCM_8K_16K_16BIT = 0x0003;
+    private static final short ADPCM_OPUS_8K_16BIT = 0x0005;
+    private static final short ADPCM_OPUS_8K_16K_16BIT = 0x0007;
+
     private BluetoothGattCharacteristic mTXChara;
     private BluetoothGattCharacteristic mRXChara;
     private BluetoothGattCharacteristic mCTLChara;
     private BluetoothGatt mBluetoothGatt;
-    private class ATVInfo{
-        short version;
-        short codecSupported;
-        short bytesPerFrame;
-        short bytesPerChara;
-        ATVInfo(short version,short codecSupported,short bytesPerFrame,short bytesPerChara){
-            this.version = version;
-            this.codecSupported = codecSupported;
-            this.bytesPerChara = bytesPerChara;
-            this.bytesPerFrame = bytesPerFrame;
-        }
-    }
-
-    private ATVInfo mATVInfo;
+    private BluetoothDevice mCurrentDevice;
+    private ADPCMDecoder mAdpcmDecoder;
     public static synchronized VoiceService getInstance(){
         if(sVoiceService != null){
             return sVoiceService;
@@ -76,44 +75,56 @@ public class VoiceService extends Service {
             svc = service;
         }
         @Override
-        public void startVoice() {
+        public void startVoice(BluetoothDevice device) {
             if(svc == null){
                 return;
             }
-            svc.startVoice();
+            svc.startVoice(device);
         }
 
         @Override
-        public void stopVoice() {
+        public void stopVoice(BluetoothDevice device) {
             if(svc == null){
                 return;
             }
-            svc.stopVoice();
+            svc.stopVoice(device);
         }
 
         @Override
-        public void connect(String address){
+        public void connect(BluetoothDevice device){
             if(svc == null){
                 return;
             }
-            svc.connect(address);
+            svc.connect(device);
         }
     }
 
-    private void connect(String address){
-
+    private void connect(BluetoothDevice device){
+        if(mCurrentDevice != null && mCurrentDevice.equals(device)){
+            Log.d(TAG,"device already under test");
+            return;
+        }
+        if(mCurrentDevice != null && (!mCurrentDevice.equals(device))){
+            Log.d(TAG,"close gatt");
+            mBluetoothGatt.close();
+        }
+        mCurrentDevice = device;
+        mBluetoothGatt = device.connectGatt(getBaseContext(),false,mBluetoothGattCallback,BluetoothDevice.TRANSPORT_LE);
     }
 
-    private void startVoice(){
-
+    private void startVoice(BluetoothDevice device){
+        if(mBluetoothGatt == null && (!device.equals(mCurrentDevice))){
+            connect(device);
+        }else{
+            ATVVOpenMic();
+        }
     }
 
-    private void stopVoice(){
-
-    }
-
-    public void onConnectionStateChanged(BluetoothDevice device,int preState,int state){
-
+    private void stopVoice(BluetoothDevice device){
+        if(mBluetoothGatt == null && (!device.equals(mCurrentDevice))){
+            return;
+        }
+        ATVVCloseMic();
     }
 
     private void enableNotification(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic){
@@ -158,12 +169,73 @@ public class VoiceService extends Service {
         }
     }
 
-    private void ATVVOpenMic(){
-        byte[] bytes  = new byte[]{0x0c,0x00,0x01,0x00,0x00};
+    private void ATVVCloseMic(){
+        byte[] bytes = new byte[]{0x0D,0x00,0x00};
         if(mTXChara != null && mBluetoothGatt != null){
             mTXChara.setValue(bytes);
             mBluetoothGatt.writeCharacteristic(mTXChara);
         }
+    }
+
+    private void ATVVOpenMic(){
+        byte[] bytes  = new byte[]{0x0c,0x00,0x01};
+        if(mTXChara != null && mBluetoothGatt != null){
+            mTXChara.setValue(bytes);
+            mBluetoothGatt.writeCharacteristic(mTXChara);
+        }
+    }
+
+    private void processCAPResp(byte[] bytes){
+        short version =(short) (bytes[2]&0xff);
+        version |=(short) ((bytes[1]&0xff) << 8);
+        short codecSupported = (short) (bytes[4]&0xff);
+        codecSupported |= (short) (bytes[3]&0xff<<8);
+        short bytesPerFrame =(short) (bytes[6]&0xff);
+        bytesPerFrame |= (short) (bytes[5]&0xff<<8);
+        short bytesPerChara =(short) (bytes[8]&0xff);
+        bytesPerChara |= (short) (bytes[7]&0xff<<8);
+        if(codecSupported == ADPCM_8K_16BIT ){
+            mAdpcmDecoder = new ADPCMDecoder(new VoiceInfo(version,codecSupported,bytesPerFrame,bytesPerChara));
+        }
+        Log.d(TAG,"version:"+version+",codec:"+codecSupported+",bytesPerFrame:"+bytesPerFrame+",bytesPerChara:"+bytesPerChara);
+    }
+
+    private void processCTLResponse(){
+        byte[] bytes = mCTLChara.getValue();
+        switch (bytes[0]){
+            case AUDIO_STOP:
+                Log.d(TAG,"receive audio stop");
+                mAdpcmDecoder.setVoiceStartFlag(false);
+                break;
+            case AUDIO_START:
+                Log.d(TAG,"receive audio start");
+                mAdpcmDecoder.setVoiceStartFlag(true);
+                break;
+            case SEARCH_START:
+                Log.d(TAG,"receive search start");
+                break;
+            case AUDIO_SYNC:
+                Log.d(TAG,"receive audio sync");
+                break;
+            case GET_CAPS_RESP:
+                processCAPResp(bytes);
+                break;
+            case MIC_OPEN_ERROR:
+                Log.d(TAG,"receive mic open error");
+                break;
+        }
+    }
+
+    private void processAudioData(){
+        if(mRXChara == null){
+            return;
+        }
+        byte[] bytes = mRXChara.getValue();
+        if(mAdpcmDecoder == null){
+            Log.d(TAG,"decoder is not ready");
+            return;
+        }
+        mAdpcmDecoder.append(bytes);
     }
 
     private BluetoothGattCallback mBluetoothGattCallback = new BluetoothGattCallback() {
@@ -202,10 +274,6 @@ public class VoiceService extends Service {
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
-            Log.d(TAG,"onCharacteristicRead");
-            if(characteristic.equals(mCTLChara)){
-                Log.d(TAG,"on remote response");
-            }
         }
 
         @Override
@@ -220,19 +288,9 @@ public class VoiceService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
             if(characteristic.equals(mCTLChara)){
-                byte[] bytes = characteristic.getValue();
-                if(bytes[0] == 0x0B){
-                    short version =(byte) (bytes[2]&0xff);
-                    version |=(byte) ((bytes[1]&0xff) << 8);
-                    short codecSupported = (byte)(bytes[4]&0xff);
-                    codecSupported |= (byte)(bytes[3]&0xff<<8);
-                    short bytesPerFrame =(short) (bytes[6]&0xff);
-                    bytesPerFrame |= (byte)(bytes[5]&0xff<<8);
-                    short bytesPerChara =(byte) (bytes[8]&0xff);
-                    bytesPerChara |= (byte)(bytes[7]&0xff<<8);
-                    mATVInfo = new ATVInfo(version,codecSupported,bytesPerFrame,bytesPerChara);
-                    Log.d(TAG,"version:"+version+",codec:"+codecSupported+",bytesPerFrame:"+bytesPerFrame+",bytesPerChara:"+bytesPerChara);
-                }
+                processCTLResponse();
+            }else if(characteristic.equals(mRXChara)){
+                processAudioData();
             }
         }
 
@@ -255,7 +313,6 @@ public class VoiceService extends Service {
             }else if(descriptor.getCharacteristic().equals(mRXChara)){
                 Log.d(TAG,"rc characteristic descriptor configured");
                 ATVVGetCapabilities();
-                //ATVVOpenMic();
             }
         }
 
@@ -278,19 +335,16 @@ public class VoiceService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG,"onStartCommand");
-        BluetoothDevice device = intent.getParcelableExtra("Device");
-        if(device != null){
-            mBluetoothGatt = device.connectGatt(getBaseContext(),false,
-                    mBluetoothGattCallback,BluetoothDevice.TRANSPORT_LE);
-        }
+        Log.d(TAG,"onStartCommand:"+startId);
         return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mBluetoothGatt.close();
+        if(mBluetoothGatt != null){
+            mBluetoothGatt.close();
+        }
         Log.d(TAG,"onDestroy");
     }
 }

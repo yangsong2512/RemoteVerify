@@ -56,7 +56,6 @@ public class TestCaseAdapter extends BaseAdapter {
     public void parserTestCase(){
         try{
             InputStream inputStream = mContext.getAssets().open("Projects.xml");
-            Log.d(TAG,"start xml parser");
             new TestCaseParserTask().execute(inputStream);
         }catch (IOException e){
             Log.d(TAG,""+e);
@@ -70,23 +69,18 @@ public class TestCaseAdapter extends BaseAdapter {
         for(int i = 0;i < count;i++){
             String key = parser.getAttributeName(i);
             String value = parser.getAttributeValue(i);
-            Log.d(TAG,"key:"+key+",value:"+value);
             if(key.equals("Enable")&&value.equals("false")){
-                Log.d(TAG,"Enable:"+value);
                 return false;
             }
             if(key.equals("Desc")){
                 desc = value;
-                Log.d(TAG,"desc:"+desc);
 
             }
             if(key.equals("Title")){
                 title = value;
-                Log.d(TAG,"title:"+title);
             }
         }
         if(desc != null && title != null){
-            Log.d(TAG,"add new case");
             mTestCaseList.add(new TestCase(title,desc));
         }
         return true;
@@ -175,10 +169,20 @@ public class TestCaseAdapter extends BaseAdapter {
                 @Override
                 public void onClick(View v) {
                     if(mTestCaseFragment != null){
-                        viewHolder.startButton.setVisibility(View.GONE);
-                        viewHolder.progressBar.setVisibility(View.VISIBLE);
                         mCurrentCase = mTestCaseList.get(position).title;
-                        mTestCaseFragment.onStartButtonClicked(mCurrentCase);
+                        if(!mCurrentCase.equals(mContext.getResources().getString(R.string.voice_test))){
+                            viewHolder.startButton.setVisibility(View.GONE);
+                            viewHolder.progressBar.setVisibility(View.VISIBLE);
+                        }
+                        if(viewHolder.startButton.getText().equals("Run")){
+                            viewHolder.startButton.setText("Running");
+                            mTestCaseFragment.onStartButtonClicked(mCurrentCase,true);
+                        }else{
+                            viewHolder.startButton.setText("Run");
+                            mTestCaseFragment.onStartButtonClicked(mCurrentCase,false);
+                        }
+
+
                     }
                 }
             });

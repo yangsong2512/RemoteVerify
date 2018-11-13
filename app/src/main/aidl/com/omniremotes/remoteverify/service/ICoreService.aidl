@@ -3,6 +3,7 @@ package com.omniremotes.remoteverify.service;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
+import android.bluetooth.BluetoothDevice;
 // Declare any non-default types here with import statements
 
 interface ICoreService {
@@ -15,5 +16,5 @@ interface ICoreService {
     void initHid();
     boolean startScan(String address,int scanMode);
     boolean stopScan();
-    void startPair(String address);
+    void startPair(in BluetoothDevice device);
 }

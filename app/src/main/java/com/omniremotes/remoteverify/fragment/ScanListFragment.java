@@ -26,12 +26,6 @@ public class ScanListFragment extends Fragment {
     private ScanListAdapter mAdapter;
     private DeviceListAdapter mDeviceListAdapter;
     private OnScanListFragmentEvents mListener;
-    public static ScanListFragment getInstance(){
-        if(mScanListFragment == null){
-            mScanListFragment = new ScanListFragment();
-        }
-        return mScanListFragment;
-    }
     public interface OnScanListFragmentEvents{
         void onDeviceClicked(ScanResult result);
         void onPairedDeviceClicked(BluetoothDevice device);

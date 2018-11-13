@@ -37,6 +37,7 @@ public class CoreService extends Service {
     private BluetoothEventReceiver mReceiver;
     private IBluetoothEventListener mListener;
     private String mPairingAddress;
+    private BluetoothDevice mPairingDevice;
     private MyHandler mHandler = new MyHandler();
     private static final int MESSAGE_START_PAIR = 0;
     private BluetoothProfile mInputDeviceProxy;
@@ -96,9 +97,8 @@ public class CoreService extends Service {
                         }
                         mPairingAddress = null;
                     }else if(preState == BluetoothDevice.BOND_BONDED && state == BluetoothDevice.BOND_NONE){
-                        String address = device.getAddress();
-                        if(mPairingAddress != null && mPairingAddress.equals(address)){
-                            startPair(mPairingAddress);
+                        if(mPairingAddress != null && mPairingDevice.equals(device)){
+                            startPair(device);
                         }
                     }
                     if(mListener != null){
@@ -156,11 +156,11 @@ public class CoreService extends Service {
             return svc.startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
         }
 
-        public synchronized void startPair(String address){
+        public synchronized void startPair(BluetoothDevice device){
             if(svc == null){
                 return;
             }
-            svc.startPair(address);
+            svc.startPair(device);
         }
 
         public boolean stopScan(){
@@ -301,34 +301,33 @@ public class CoreService extends Service {
         return true;
     }
 
-    private boolean startPairProcedure(String address){
-        Set<BluetoothDevice> devices = mBluetoothAdapter.getBondedDevices();
-        for(BluetoothDevice device:devices){
-            String bondedAddress = device.getAddress();
-            if(address.equals(bondedAddress)){
-                try{
-                    Method method =  device.getClass().getMethod("removeBond",
-                            (Class[]) null);
-                    method.invoke(device,(Object[]) null);
-                }catch (Exception e) {
-                    Log.d(TAG, "" + e);
-                }
-                return false;
+    private boolean startPairProcedure(BluetoothDevice device){
+        if(device == null){
+            return true;
+        }
+        if(device.getBondState() == BluetoothDevice.BOND_BONDED){
+            try{
+                Method method =  device.getClass().getMethod("removeBond",
+                        (Class[]) null);
+                method.invoke(device,(Object[]) null);
+            }catch (Exception e) {
+                Log.d(TAG, "" + e);
             }
+            return false;
         }
         return true;
     }
 
-    public void startPair(String address){
+    public void startPair(BluetoothDevice device){
         if(mBluetoothAdapter == null){
             return;
         }
-        mPairingAddress = address;
+        mPairingDevice = device;
         stopScan();
         Log.d(TAG,"onStartPair");
-        if(startPairProcedure(address)){
+        if(startPairProcedure(device)){
             SystemClock.sleep(500);
-            startScan(address,ScanSettings.SCAN_MODE_LOW_LATENCY);
+            startScan(device.getAddress(),ScanSettings.SCAN_MODE_LOW_LATENCY);
         }
     }
 
@@ -341,6 +340,9 @@ public class CoreService extends Service {
         if(mReceiver != null){
             unregisterReceiver(mReceiver);
             mReceiver = null;
+        }
+        if(mInputDeviceProxy != null){
+            mBluetoothAdapter.closeProfileProxy(4,mInputDeviceProxy);
         }
     }
 

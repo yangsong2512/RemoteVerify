@@ -28,10 +28,10 @@ public class TestCaseFragment extends Fragment {
     private TextView mDeviceDetailView;
     private TextView mDeviceStatusView;
     private String mDeviceAddress;
+    private BluetoothDevice mCurrentDevice;
     private OnTestCaseFragmentEventListener mListener;
-    private String mCurrentCase;
     public interface OnTestCaseFragmentEventListener{
-        void onStartButtonClicked(String testCase,String address);
+        void onStartButtonClicked(String testCase,BluetoothDevice device,boolean running);
     }
     @Nullable
     @Override
@@ -92,6 +92,7 @@ public class TestCaseFragment extends Fragment {
         if(device == null){
             return;
         }
+        mCurrentDevice = device;
         mDeviceAddress = device.getAddress();
         SpannableString name = makeString("Name     ",device.getName());
         SpannableString address = makeString("\nAddress ",mDeviceAddress);
@@ -111,9 +112,9 @@ public class TestCaseFragment extends Fragment {
         mListener = listener;
     }
 
-    public void onStartButtonClicked(String testCase){
+    public void onStartButtonClicked(String testCase,boolean running){
         if(mListener != null){
-            mListener.onStartButtonClicked(testCase,mDeviceAddress);
+            mListener.onStartButtonClicked(testCase,mCurrentDevice,running);
         }
     }
 
