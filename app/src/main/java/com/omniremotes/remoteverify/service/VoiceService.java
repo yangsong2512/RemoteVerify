@@ -12,11 +12,20 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.omniremotes.remoteverify.decoder.ADPCMDecoder;
+import com.omniremotes.remoteverify.decoder.VoiceInfo;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
-public class VoiceService extends Service {
+public class VoiceService extends Service implements ADPCMDecoder.OnPcmDataReadyListener {
     private VoiceServiceBinder mBinder;
     private static final String TAG="RemoteVerify-VoiceService";
     private static VoiceService sVoiceService;
@@ -35,13 +44,14 @@ public class VoiceService extends Service {
     private static final short ADPCM_8K_16K_16BIT = 0x0003;
     private static final short ADPCM_OPUS_8K_16BIT = 0x0005;
     private static final short ADPCM_OPUS_8K_16K_16BIT = 0x0007;
-
+    private static boolean DBG = false;
     private BluetoothGattCharacteristic mTXChara;
     private BluetoothGattCharacteristic mRXChara;
     private BluetoothGattCharacteristic mCTLChara;
     private BluetoothGatt mBluetoothGatt;
     private BluetoothDevice mCurrentDevice;
     private ADPCMDecoder mAdpcmDecoder;
+    private FileOutputStream mFileOutputStream;
     public static synchronized VoiceService getInstance(){
         if(sVoiceService != null){
             return sVoiceService;
@@ -61,6 +71,7 @@ public class VoiceService extends Service {
         if(mBinder == null){
             mBinder = new VoiceServiceBinder(this);
         }
+
         setVoiceService(this);
     }
 
@@ -195,27 +206,50 @@ public class VoiceService extends Service {
         short bytesPerChara =(short) (bytes[8]&0xff);
         bytesPerChara |= (short) (bytes[7]&0xff<<8);
         if(codecSupported == ADPCM_8K_16BIT ){
-            mAdpcmDecoder = new ADPCMDecoder(new VoiceInfo(version,codecSupported,bytesPerFrame,bytesPerChara));
+            mAdpcmDecoder = new ADPCMDecoder(version,codecSupported,bytesPerFrame,bytesPerChara);
+            mAdpcmDecoder.registerOnPcmDataReadyListener(this);
         }
         Log.d(TAG,"version:"+version+",codec:"+codecSupported+",bytesPerFrame:"+bytesPerFrame+",bytesPerChara:"+bytesPerChara);
     }
+
+    private TimerTask mTimerTask = new TimerTask() {
+        @Override
+        public void run() {
+            Log.d(TAG,"stop voice");
+            stopVoice(mCurrentDevice);
+        }
+    };
 
     private void processCTLResponse(){
         byte[] bytes = mCTLChara.getValue();
         switch (bytes[0]){
             case AUDIO_STOP:
-                Log.d(TAG,"receive audio stop");
-                mAdpcmDecoder.setVoiceStartFlag(false);
+                mAdpcmDecoder.onVoiceStop();
+                if(mFileOutputStream != null){
+                    try{
+                        mFileOutputStream.flush();
+                        mFileOutputStream.close();
+                        mFileOutputStream = null;
+                    }catch (IOException e){
+                        Log.d(TAG,""+e);
+                    }
+                }
                 break;
             case AUDIO_START:
-                Log.d(TAG,"receive audio start");
-                mAdpcmDecoder.setVoiceStartFlag(true);
+                try{
+                    mFileOutputStream = getBaseContext().openFileOutput("test.pcm",MODE_PRIVATE);
+                    Timer timer = new Timer();
+                    timer.schedule(mTimerTask,10*1000);
+                }catch (FileNotFoundException e){
+                    Log.d(TAG,""+e);
+                }
+                mAdpcmDecoder.onVoiceStart();
                 break;
             case SEARCH_START:
                 Log.d(TAG,"receive search start");
                 break;
             case AUDIO_SYNC:
-                Log.d(TAG,"receive audio sync");
+                mAdpcmDecoder.onVoiceSync();
                 break;
             case GET_CAPS_RESP:
                 processCAPResp(bytes);
@@ -332,6 +366,33 @@ public class VoiceService extends Service {
             super.onMtuChanged(gatt, mtu, status);
         }
     };
+
+    public static void dump(byte[] bytes){
+        if(!DBG){
+            return;
+        }
+        StringBuilder builder = new StringBuilder();
+        for(byte var:bytes){
+            builder.append(String.format("%02x ",var));
+        }
+        Log.d(TAG,""+builder.toString());
+    }
+
+    @Override
+    public void onPcmDataReady(short[] pcm) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(pcm.length*2);
+        for(short data:pcm){
+            byteBuffer.putShort(data);
+        }
+        dump(byteBuffer.array());
+        if(mFileOutputStream != null){
+            try{
+                mFileOutputStream.write(byteBuffer.array());
+            }catch (IOException e){
+                Log.d(TAG,""+e);
+            }
+        }
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

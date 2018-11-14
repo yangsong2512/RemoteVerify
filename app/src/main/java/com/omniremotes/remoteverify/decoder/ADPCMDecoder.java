@@ -1,26 +1,37 @@
 package com.omniremotes.remoteverify.decoder;
 
-import android.speech.tts.Voice;
+import android.content.Context;
+import android.util.Log;
 
-import com.omniremotes.remoteverify.service.VoiceInfo;
-
-import javax.net.ssl.SNIHostName;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class ADPCMDecoder {
-    private VoiceInfo mVoiceInfo;
-    private int expSeqNum = 0;
-    private short mDroppedPackets = 0;
-    private boolean mVoiceStartFlag = false;
-    private byte[] mRawData;
-    public void setVoiceStartFlag(boolean start){
-        mVoiceStartFlag = start;
-        if(!start){
-            mDroppedPackets = 0;
-        }
+    private static final String TAG="RemoteVerify-ADPCMDecoder";
+    private int mExpSeqNum = 0;
+    private int mDroppedPackets = 0;
+    private int mDroppedFrames = 0;
+    private boolean mNewFrameStartFlag = false;
+    private ByteArrayOutputStream mOutputStream ;
+    private short mVersion;
+    private short mCodecSupported;
+    private short mBytesPerFrame;
+    private short mBytesPerPacket;
+    private OnPcmDataReadyListener mListener;
+
+    public interface OnPcmDataReadyListener{
+        void onPcmDataReady(short[] data);
     }
-    public ADPCMDecoder(VoiceInfo voiceInfo){
-        mVoiceInfo = voiceInfo;
-        mRawData = new byte[voiceInfo.bytesPerFrame];
+
+    public ADPCMDecoder(short version, short codecSupported, short bytesPerFrame, short bytesPerChara){
+        mVersion = version;
+        mCodecSupported = codecSupported;
+        mBytesPerFrame = bytesPerFrame;
+        mBytesPerPacket = bytesPerChara;
+    }
+
+    public void registerOnPcmDataReadyListener(OnPcmDataReadyListener listener){
+        mListener = listener;
     }
     /*Step size look up table*/
     private static short[] steptab = {
@@ -39,35 +50,72 @@ public class ADPCMDecoder {
             -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8
     };
 
-    public void append(byte[] bytes){
-        int seqNum = bytes[1]&0xff+(bytes[0]&0xff<<8);
-        if(seqNum != expSeqNum && seqNum != 0){
-            int dropped = seqNum - expSeqNum;
-            mDroppedPackets += dropped;
+    public void onVoiceStart(){
+        Log.d(TAG,"version:"+mVersion+",codecSupported:"+mCodecSupported+",bytesPerFrame:"+mBytesPerFrame
+                +",bytesPerPacket:"+mBytesPerPacket);
+        mNewFrameStartFlag = true;
+        mOutputStream = new ByteArrayOutputStream();
+        mOutputStream.reset();
+    }
+    public void onVoiceStop(){
+        Log.d(TAG,"onVoiceStop:"+mDroppedFrames);
+        if(mOutputStream != null){
+            try{
+                mOutputStream.close();
+            }catch (IOException e){
+                Log.d(TAG,""+e);
+            }
         }
-        expSeqNum  = seqNum+1;
+    }
+    public void onVoiceSync(){
+        mOutputStream.reset();
+        mNewFrameStartFlag = true;
     }
 
-    public short[] decode(byte[] rawData){
-
-        short[] pcmData = new short[rawData.length*2];
-        short preSample = (short)(rawData[4]&0xff+(rawData[3]&0xff<<8));
-        short index =(short)(rawData[5]&0xff);
+    public synchronized void append(byte[] bytes){
+        if(mNewFrameStartFlag){
+            mNewFrameStartFlag = false;
+            mOutputStream.reset();
+            int seqNum = bytes[1]&0xff+((bytes[0]&0xff)<<8);
+            if(seqNum != mExpSeqNum && seqNum != 0){
+                int dropped = seqNum - mExpSeqNum;
+                mDroppedFrames += dropped;
+            }
+            mExpSeqNum  = seqNum+1;
+        }
+        try{
+            mOutputStream.write(bytes);
+        }catch (IOException e){
+            Log.d(TAG,""+e);
+        }
+        if(bytes.length<=14) {
+            mNewFrameStartFlag = true;
+            byte[] frame = mOutputStream.toByteArray();
+            if(frame.length == mBytesPerFrame){
+                decode(frame);
+            }
+        }
+    }
+    private void decode(byte[] rawData){
         int n = 6;
-        boolean odd = true;
-        byte code = 0;
-        int diff = 0;
-        int sampx = 0;
+        int code;
+        int diff;
+        int sampx;
         int len = 0;
-        while(n < rawData.length){
+        boolean odd = true;
+        int index =(rawData[5]&0xff);
+        short[] pcmData = new short[(mBytesPerFrame-6)*2];
+        int preSample = (rawData[4]&0xff+((rawData[3]&0xff)<<8));
+
+        while(n < rawData.length-6){
             diff = 0;
-            if(odd) code =(byte)((rawData[n]&0xff)>>4);
-            else code =(byte) (rawData[n]&0x0f);
-            if ((code & 4)!=0) diff = diff + steptab[index];
-            if ((code & 2)!=0) diff = diff + (steptab[index] >> 1);
-            if ((code & 1)!=0) diff = diff + (steptab[index] >> 2);
-            diff = diff + (steptab[index] >> 3);
-            if ((code & 8)!=0) sampx = preSample - diff;
+            if(odd) code = ((rawData[n]&0xff)>>>4);
+            else code = ((rawData[n])&0x0f);
+            if ((code & 0x04)!=0) diff = diff + steptab[index];
+            if ((code & 0x02)!=0) diff = diff + (steptab[index] >>> 1);
+            if ((code & 0x01)!=0) diff = diff + (steptab[index] >>> 2);
+            diff = diff + (steptab[index] >>> 3);
+            if ((code & 0x08)!=0) sampx = preSample - diff;
             else sampx = preSample + diff;
             // check sampx
             if(diff<=32767)
@@ -85,14 +133,15 @@ public class ADPCMDecoder {
 
             odd = (!odd);
             if (odd)  n++;
-            if (len > mVoiceInfo.bytesPerFrame/2)
-                return null;
-            n++;
+            if (len > mBytesPerFrame*2)
+                return;
         }
-        return pcmData;
+        if(mListener != null){
+            mListener.onPcmDataReady(pcmData);
+        }
     }
 
-    public int getDroppedPacketsNum(){
-        return mDroppedPackets;
+    private void writeFile(){
+
     }
 }
