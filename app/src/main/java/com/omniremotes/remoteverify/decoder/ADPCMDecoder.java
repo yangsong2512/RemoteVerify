@@ -1,6 +1,5 @@
 package com.omniremotes.remoteverify.decoder;
 
-import android.content.Context;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -9,7 +8,6 @@ import java.io.IOException;
 public class ADPCMDecoder {
     private static final String TAG="RemoteVerify-ADPCMDecoder";
     private int mExpSeqNum = 0;
-    private int mDroppedPackets = 0;
     private int mDroppedFrames = 0;
     private boolean mNewFrameStartFlag = false;
     private ByteArrayOutputStream mOutputStream ;
@@ -20,7 +18,7 @@ public class ADPCMDecoder {
     private OnPcmDataReadyListener mListener;
 
     public interface OnPcmDataReadyListener{
-        void onPcmDataReady(short[] data);
+        void onPcmDataReady(byte[] data);
     }
 
     public ADPCMDecoder(short version, short codecSupported, short bytesPerFrame, short bytesPerChara){
@@ -46,7 +44,7 @@ public class ADPCMDecoder {
         15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
     };
     /*Index table*/
-    private static  byte[] indexTable = {
+    private static int[] indexTable = {
             -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8
     };
 
@@ -96,52 +94,48 @@ public class ADPCMDecoder {
             }
         }
     }
-    private void decode(byte[] rawData){
+    private void decode(byte[] rawData) {
         int n = 6;
         int code;
         int diff;
         int sampx;
         int len = 0;
+        int index = (rawData[5] & 0xff);
         boolean odd = true;
-        int index =(rawData[5]&0xff);
-        short[] pcmData = new short[(mBytesPerFrame-6)*2];
-        int preSample = (rawData[4]&0xff+((rawData[3]&0xff)<<8));
+        byte[] pcmData = new byte[(rawData.length-6)*4];
+        int preSample = (rawData[4] & 0xff + ((rawData[3] & 0xff) << 8));
 
-        while(n < rawData.length-6){
+        while (n < rawData.length) {
             diff = 0;
-            if(odd) code = ((rawData[n]&0xff)>>>4);
-            else code = ((rawData[n])&0x0f);
-            if ((code & 0x04)!=0) diff = diff + steptab[index];
-            if ((code & 0x02)!=0) diff = diff + (steptab[index] >>> 1);
-            if ((code & 0x01)!=0) diff = diff + (steptab[index] >>> 2);
+            if (odd) code = ((rawData[n] & 0xff) >>> 4);
+            else code = ((rawData[n]) & 0x0f);
+            if ((code & 0x04) != 0) diff = diff + steptab[index];
+            if ((code & 0x02) != 0) diff = diff + (steptab[index] >>> 1);
+            if ((code & 0x01) != 0) diff = diff + (steptab[index] >>> 2);
             diff = diff + (steptab[index] >>> 3);
-            if ((code & 0x08)!=0) sampx = preSample - diff;
+            if ((code & 0x08) != 0) sampx = preSample - diff;
             else sampx = preSample + diff;
             // check sampx
-            if(diff<=32767)
-            {
+            if (diff <= 32767) {
                 if (sampx < -32767) sampx = -32767;
                 if (sampx > 32767) sampx = 32767;
             }
-            pcmData[len] =(short) sampx;
+            //pcmData[len] = (short) sampx;
+            pcmData[len++] = (byte)sampx;
+            pcmData[len++] = (byte)(sampx >> 8);
             preSample = pcmData[len];
-            len++;
             // adjust index
-            index =(short) (index + indexTable[code]);
+            index += indexTable[code];
             if (index < 0) index = 0;
-            if (index >88) index = 88;
+            if (index > 88) index = 88;
 
             odd = (!odd);
-            if (odd)  n++;
-            if (len > mBytesPerFrame*2)
+            if (odd) n++;
+            if (len > mBytesPerFrame * 2)
                 return;
         }
-        if(mListener != null){
+        if (mListener != null) {
             mListener.onPcmDataReady(pcmData);
         }
-    }
-
-    private void writeFile(){
-
     }
 }

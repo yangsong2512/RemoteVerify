@@ -379,15 +379,11 @@ public class VoiceService extends Service implements ADPCMDecoder.OnPcmDataReady
     }
 
     @Override
-    public void onPcmDataReady(short[] pcm) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(pcm.length*2);
-        for(short data:pcm){
-            byteBuffer.putShort(data);
-        }
-        dump(byteBuffer.array());
+    public void onPcmDataReady(byte[] pcm) {
+        dump(pcm);
         if(mFileOutputStream != null){
             try{
-                mFileOutputStream.write(byteBuffer.array());
+                mFileOutputStream.write(pcm);
             }catch (IOException e){
                 Log.d(TAG,""+e);
             }
