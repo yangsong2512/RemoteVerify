@@ -187,8 +187,6 @@ public class ADPCMDecoder {
             index += indexTable[code];
             if (index < 0) index = 0;
             if (index > 88) index = 88;
-            Log.d(TAG,""+index);
-
             odd = (!odd);
             if (odd) n++;
             if (len > (mBytesPerFrame-6)*4){
@@ -196,7 +194,6 @@ public class ADPCMDecoder {
             }
         }
         if (mListener != null) {
-            Log.d(TAG,"onPcmDataReady:"+len);
             mListener.onPcmDataReady(pcmData);
         }
     }
