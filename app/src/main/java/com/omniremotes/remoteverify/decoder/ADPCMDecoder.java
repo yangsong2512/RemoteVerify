@@ -16,6 +16,8 @@ public class ADPCMDecoder {
     private short mBytesPerFrame;
     private short mBytesPerPacket;
     private OnPcmDataReadyListener mListener;
+    private static final int APP_WAVE_HDR_SIZE=44;
+    int DBG=1;
 
     public interface OnPcmDataReadyListener{
         void onPcmDataReady(byte[] data);
@@ -32,7 +34,7 @@ public class ADPCMDecoder {
         mListener = listener;
     }
     /*Step size look up table*/
-    private static short[] steptab = {
+    private static int[] steptab = {
         7, 8, 9, 10, 11, 12, 13, 14, 16, 17,
         19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
         50, 55, 60, 66, 73, 80, 88, 97, 107, 118,
@@ -47,6 +49,22 @@ public class ADPCMDecoder {
     private static int[] indexTable = {
             -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8
     };
+
+    private static byte[] mWavHdr = new byte[]{
+            'R','I','F','F',
+            '\0', '\0', '\0', '\0',
+            'W', 'A', 'V', 'E',
+            'f', 'm', 't', ' ',
+            0x10, 0x00, 0x00, 0x00,
+            0x01, 0x00,
+            '\0', '\0',
+            '\0', '\0','\0', '\0',
+            '\0', '\0',
+            '\0', '\0',
+            'd', 'a', 't', 'a',
+            '\0', '\0', '\0', '\0'
+    };
+
 
     public void onVoiceStart(){
         Log.d(TAG,"version:"+mVersion+",codecSupported:"+mCodecSupported+",bytesPerFrame:"+mBytesPerFrame
@@ -94,47 +112,91 @@ public class ADPCMDecoder {
             }
         }
     }
-    private void decode(byte[] rawData) {
+
+    private static void fillWavHdr(int nbChannels,int sampleRate,int bitsPerSample,int dataSize){
+        int byteRate = 0;
+        int blockAlign = 0;
+        if(bitsPerSample == 8){
+            byteRate = nbChannels*sampleRate;
+            blockAlign=nbChannels;
+        }else if(bitsPerSample == 16){
+            byteRate = nbChannels*2*sampleRate;
+            blockAlign = nbChannels*2;
+        }
+        int chunkSize = dataSize+36;
+        mWavHdr[4] = (byte) chunkSize;
+        mWavHdr[5] = (byte)(chunkSize >> 8);
+        mWavHdr[6] = (byte)(chunkSize >> 16);
+        mWavHdr[7] = (byte)(chunkSize >> 24);
+
+        mWavHdr[22] = (byte)nbChannels;
+        mWavHdr[23] = 0; /* nb_channels is coded on 1 byte only */
+
+        mWavHdr[24] = (byte)sampleRate;
+        mWavHdr[25] = (byte)(sampleRate >> 8);
+        mWavHdr[26] = (byte)(sampleRate >> 16);
+        mWavHdr[27] = (byte)(sampleRate >> 24);
+
+        mWavHdr[28] = (byte)byteRate;
+        mWavHdr[29] = (byte)(byteRate >> 8);
+        mWavHdr[30] = (byte)(byteRate >> 16);
+        mWavHdr[31] = (byte)(byteRate >> 24);
+
+        mWavHdr[32] = (byte)blockAlign;
+        mWavHdr[33] = (byte)(blockAlign >> 8);
+
+        mWavHdr[34] = (byte)bitsPerSample;
+        mWavHdr[35] = (byte)(bitsPerSample >> 8);
+
+        mWavHdr[40] = (byte)dataSize;
+        mWavHdr[41] = (byte)(dataSize >> 8);
+        mWavHdr[42] = (byte)(dataSize >> 16);
+        mWavHdr[43] = (byte)(dataSize >> 24);
+    }
+
+    private synchronized void decode(byte[] rawData) {
         int n = 6;
-        int code;
-        int diff;
-        int sampx;
+        int code = 0;
+        int diff = 0;
+        int sampx = 0;
         int len = 0;
         int index = (rawData[5] & 0xff);
         boolean odd = true;
         byte[] pcmData = new byte[(rawData.length-6)*4];
-        int preSample = (rawData[4] & 0xff + ((rawData[3] & 0xff) << 8));
-
+        //int preSample = (rawData[4] & 0xff + ((rawData[3] & 0xff) << 8));
+        int predictedSample = 0;
         while (n < rawData.length) {
             diff = 0;
-            if (odd) code = ((rawData[n] & 0xff) >>> 4);
+            if (odd) code = ((rawData[n] & 0xff) >> 4);
             else code = ((rawData[n]) & 0x0f);
+
             if ((code & 0x04) != 0) diff = diff + steptab[index];
-            if ((code & 0x02) != 0) diff = diff + (steptab[index] >>> 1);
-            if ((code & 0x01) != 0) diff = diff + (steptab[index] >>> 2);
-            diff = diff + (steptab[index] >>> 3);
-            if ((code & 0x08) != 0) sampx = preSample - diff;
-            else sampx = preSample + diff;
-            // check sampx
-            if (diff <= 32767) {
-                if (sampx < -32767) sampx = -32767;
-                if (sampx > 32767) sampx = 32767;
+            if ((code & 0x02) != 0) diff = diff + (steptab[index] >> 1);
+            if ((code & 0x01) != 0) diff = diff + (steptab[index] >> 2);
+            diff = diff + (steptab[index] >> 3);
+            if ((code & 0x08) != 0) diff = - diff;
+            predictedSample += diff;
+            if(predictedSample > 32767){
+                predictedSample = 32767;
+            }else if(predictedSample < -32768){
+                predictedSample = -32768;
             }
-            //pcmData[len] = (short) sampx;
-            pcmData[len++] = (byte)sampx;
-            pcmData[len++] = (byte)(sampx >> 8);
-            preSample = pcmData[len];
+            pcmData[len++] = (byte)((predictedSample&0xff));
+            pcmData[len++] = (byte)((predictedSample&0xff00)>>8);
             // adjust index
             index += indexTable[code];
             if (index < 0) index = 0;
             if (index > 88) index = 88;
+            Log.d(TAG,""+index);
 
             odd = (!odd);
             if (odd) n++;
-            if (len > mBytesPerFrame * 2)
+            if (len > (mBytesPerFrame-6)*4){
                 return;
+            }
         }
         if (mListener != null) {
+            Log.d(TAG,"onPcmDataReady:"+len);
             mListener.onPcmDataReady(pcmData);
         }
     }
