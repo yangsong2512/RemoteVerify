@@ -10,5 +10,5 @@ public interface IBluetoothEventListener {
     void onAclDisconnected(BluetoothDevice device);
     void onAclDisconnectRequest(BluetoothDevice device);
     void onScanResult(ScanResult result);
-    void onStartParing();
+    void onStartParing(BluetoothDevice device);
 }

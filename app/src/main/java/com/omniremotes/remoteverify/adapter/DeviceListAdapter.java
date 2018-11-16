@@ -67,4 +67,19 @@ public class DeviceListAdapter extends BaseAdapter {
         return convertView;
     }
 
+    public void removeDevice(BluetoothDevice device){
+        for(BluetoothDevice dev:mDeviceList){
+            if(dev.equals(device)){
+                mDeviceList.remove(dev);
+                notifyDataSetChanged();
+                return;
+            }
+        }
+    }
+
+    public void addDevice(BluetoothDevice device){
+        mDeviceList.add(device);
+        notifyDataSetChanged();
+    }
+
 }

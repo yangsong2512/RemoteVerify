@@ -73,6 +73,7 @@ public class ADPCMDecoder {
         mOutputStream = new ByteArrayOutputStream();
         mOutputStream.reset();
     }
+
     public void onVoiceStop(){
         Log.d(TAG,"onVoiceStop:"+mDroppedFrames);
         if(mOutputStream != null){
@@ -83,6 +84,7 @@ public class ADPCMDecoder {
             }
         }
     }
+
     public void onVoiceSync(){
         mOutputStream.reset();
         mNewFrameStartFlag = true;
@@ -156,14 +158,12 @@ public class ADPCMDecoder {
 
     private synchronized void decode(byte[] rawData) {
         int n = 6;
-        int code = 0;
-        int diff = 0;
-        int sampx = 0;
+        int code;
+        int diff;
         int len = 0;
         int index = (rawData[5] & 0xff);
         boolean odd = true;
         byte[] pcmData = new byte[(rawData.length-6)*4];
-        //int preSample = (rawData[4] & 0xff + ((rawData[3] & 0xff) << 8));
         int predictedSample = 0;
         while (n < rawData.length) {
             diff = 0;

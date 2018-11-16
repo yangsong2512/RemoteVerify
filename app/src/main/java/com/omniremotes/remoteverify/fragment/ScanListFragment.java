@@ -93,7 +93,23 @@ public class ScanListFragment extends Fragment {
 
     public void notifyOnScanResult(ScanResult result){
         if(mAdapter != null){
-            mAdapter.notifyDataSetChanged(result);
+            mAdapter.notifyDataChanged(result);
+        }
+    }
+
+    public void notifyBondStateChanged(BluetoothDevice device,int preState,int state){
+        if(state == BluetoothDevice.BOND_NONE){
+            mDeviceListAdapter.removeDevice(device);
+        }else if(state == BluetoothDevice.BOND_BONDED){
+            mDeviceListAdapter.addDevice(device);
+            mAdapter.clearDataSet();
+        }
+    }
+
+    public void onStartPairing(BluetoothDevice device){
+        Log.d(TAG,"onStartPairing");
+        if(mAdapter != null){
+            mAdapter.clearDataSet();
         }
     }
 

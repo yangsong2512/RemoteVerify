@@ -36,10 +36,10 @@ public class CoreService extends Service {
     private DeviceScanCallback mScanCallback;
     private BluetoothEventReceiver mReceiver;
     private IBluetoothEventListener mListener;
-    private String mPairingAddress;
     private BluetoothDevice mPairingDevice;
     private MyHandler mHandler = new MyHandler();
     private static final int MESSAGE_START_PAIR = 0;
+    private static final int MESSAGE_START_SCAN = 1;
     private BluetoothProfile mInputDeviceProxy;
     static {
         System.loadLibrary("native-lib");
@@ -74,11 +74,6 @@ public class CoreService extends Service {
                     }
                 }
                 break;
-                case BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED:
-                {
-
-                }
-                break;
                 case BluetoothDevice.ACTION_BOND_STATE_CHANGED:
                 {
                     int preState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE,BluetoothDevice.ERROR);
@@ -95,9 +90,14 @@ public class CoreService extends Service {
                         }catch (Exception e){
                             Log.d(TAG,""+e);
                         }
-                        mPairingAddress = null;
                     }else if(preState == BluetoothDevice.BOND_BONDED && state == BluetoothDevice.BOND_NONE){
-                        if(mPairingAddress != null && mPairingDevice.equals(device)){
+                        if( mPairingDevice.equals(device) ){
+                            Log.d(TAG,"start pair");
+                            startPair(device);
+                        }
+                    }else if(preState == BluetoothDevice.BOND_BONDING && state == BluetoothDevice.BOND_NONE){
+                        if( mPairingDevice.equals(device)){
+                            Log.d(TAG,"bond error");
                             startPair(device);
                         }
                     }
@@ -131,6 +131,12 @@ public class CoreService extends Service {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     if(mListener != null){
                         mListener.onConnectionStateChanged(device,preState,state);
+                    }
+                    if(state == BluetoothProfile.STATE_CONNECTED){
+                        if(mPairingDevice != null && mPairingDevice.equals(device)){
+                            mPairingDevice = null;
+                            startScan(null,ScanSettings.SCAN_MODE_LOW_POWER);
+                        }
                     }
                     Log.d(TAG,"preState:"+preState+",state:"+state);
                 }
@@ -228,10 +234,9 @@ public class CoreService extends Service {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             super.onScanResult(callbackType, result);
-            if(mPairingAddress != null){
+            if(mPairingDevice != null){
                 BluetoothDevice device = result.getDevice();
-                String address = device.getAddress();
-                if(address.equals(mPairingAddress)&&mScanning){
+                if(device.equals(mPairingDevice)&&mScanning){
                     stopScan();
                     mHandler.sendMessage(mHandler.obtainMessage(MESSAGE_START_PAIR,device));
                 }
@@ -255,6 +260,11 @@ public class CoreService extends Service {
                     }
                 }
                 break;
+                case MESSAGE_START_SCAN:
+                {
+
+                }
+                break;
             }
             super.handleMessage(msg);
         }
@@ -265,6 +275,7 @@ public class CoreService extends Service {
             Log.d(TAG,"bluetooth is not enabled or is scanning");
             return false;
         }
+        //mHandler.sendMessageDelayed(mHandler.obtainMessage(),1000)
         Log.d(TAG,"startScan");
         BluetoothLeScanner bluetoothLeScanner = mBluetoothAdapter.getBluetoothLeScanner();
         if(bluetoothLeScanner == null){
@@ -326,6 +337,9 @@ public class CoreService extends Service {
         stopScan();
         Log.d(TAG,"onStartPair");
         if(startPairProcedure(device)){
+            if(mListener != null){
+                mListener.onStartParing(device);
+            }
             SystemClock.sleep(500);
             startScan(device.getAddress(),ScanSettings.SCAN_MODE_LOW_LATENCY);
         }

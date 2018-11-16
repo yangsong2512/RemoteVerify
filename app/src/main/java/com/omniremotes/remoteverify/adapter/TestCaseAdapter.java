@@ -175,7 +175,9 @@ public class TestCaseAdapter extends BaseAdapter {
                             viewHolder.progressBar.setVisibility(View.VISIBLE);
                         }
                         if(viewHolder.startButton.getText().equals("Run")){
-                            viewHolder.startButton.setText("Running");
+                            if(!mCurrentCase.equals(mContext.getResources().getString(R.string.pair_test))){
+                                viewHolder.startButton.setText("Running");
+                            }
                             mTestCaseFragment.onStartButtonClicked(mCurrentCase,true);
                         }else{
                             viewHolder.startButton.setText("Run");

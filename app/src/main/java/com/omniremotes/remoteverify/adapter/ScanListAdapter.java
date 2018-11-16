@@ -133,7 +133,7 @@ public class ScanListAdapter extends BaseAdapter {
         return convertView;
     }
 
-    public synchronized void notifyDataSetChanged(ScanResult result){
+    public synchronized void notifyDataChanged(ScanResult result){
         int index = 0;
         int max =  0;
         ScanResult dupResult = null;
@@ -167,6 +167,7 @@ public class ScanListAdapter extends BaseAdapter {
     public void  clearDataSet(){
         if(mScanList != null){
             mScanList.clear();
+            notifyDataSetChanged();
         }
     }
 }

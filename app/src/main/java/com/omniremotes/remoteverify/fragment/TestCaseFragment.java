@@ -89,7 +89,9 @@ public class TestCaseFragment extends Fragment {
 
     public void notifyOnDeviceClicked(ScanResult scanResult){
         BluetoothDevice device = scanResult.getDevice();
+        Log.d(TAG,"device clicked");
         if(device == null){
+            Log.d(TAG,"device is null");
             return;
         }
         mCurrentDevice = device;
@@ -114,6 +116,9 @@ public class TestCaseFragment extends Fragment {
 
     public void onStartButtonClicked(String testCase,boolean running){
         if(mListener != null){
+            if(mCurrentDevice == null){
+                Log.d(TAG,"current device is null");
+            }
             mListener.onStartButtonClicked(testCase,mCurrentDevice,running);
         }
     }
@@ -145,6 +150,8 @@ public class TestCaseFragment extends Fragment {
             }else if(state == BluetoothProfile.STATE_CONNECTED){
                 mDeviceStatusView.setText("Device is connected");
                 mAdapter.notifyDeviceConnected(address);
+            }else if(state == BluetoothProfile.STATE_DISCONNECTED){
+                mDeviceStatusView.setText("Device is disconnected");
             }
         }
     }
@@ -167,6 +174,7 @@ public class TestCaseFragment extends Fragment {
         if(device == null){
             return;
         }
+        mCurrentDevice = device;
         mDeviceAddress = device.getAddress();
         SpannableString name = makeString("Name     ",device.getName());
         SpannableString address = makeString("\nAddress ",mDeviceAddress);
@@ -174,5 +182,9 @@ public class TestCaseFragment extends Fragment {
         mDeviceDetailView.append(address);
         mAdapter.clearDataSet();
         mAdapter.parserTestCase();
+    }
+
+    public void onStartPairing(BluetoothDevice device){
+
     }
 }

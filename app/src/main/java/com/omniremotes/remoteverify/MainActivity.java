@@ -139,6 +139,10 @@ public class MainActivity extends AppCompatActivity {
             public void onStartButtonClicked(String testCase,BluetoothDevice device,boolean running) {
                 if(mCoreService != null){
                     if(testCase.equals(getResources().getString(R.string.pair_test))){
+                        Log.d(TAG,"onDeviceClicked");
+                        if(device == null){
+                            Log.d(TAG,"device is null");
+                        }
                         try{
                             mCoreService.startPair(device);
                         }catch (RemoteException e){
@@ -287,8 +291,14 @@ public class MainActivity extends AppCompatActivity {
 
     private class BluetoothEventListener implements IBluetoothEventListener{
         @Override
-        public void onStartParing() {
-
+        public void onStartParing(BluetoothDevice device) {
+            Log.d(TAG,"onStartPairing");
+            if(mTestCaseFragment != null){
+                mTestCaseFragment.onStartPairing(device);
+            }
+            if(mScanListFragment != null){
+                mScanListFragment.onStartPairing(device);
+            }
         }
 
         @Override
@@ -304,6 +314,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBondStateChanged(BluetoothDevice device, int preState, int state) {
             mTestCaseFragment.notifyBondStateChanged(device,preState,state);
+            mScanListFragment.notifyBondStateChanged(device,preState,state);
         }
 
         @Override
