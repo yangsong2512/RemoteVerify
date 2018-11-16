@@ -33,6 +33,12 @@ public class TestCaseFragment extends Fragment {
     public interface OnTestCaseFragmentEventListener{
         void onStartButtonClicked(String testCase,BluetoothDevice device,boolean running);
     }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -100,7 +106,7 @@ public class TestCaseFragment extends Fragment {
         SpannableString address = makeString("\nAddress ",mDeviceAddress);
         mDeviceDetailView.setText(name);
         mDeviceDetailView.append(address);
-        mDeviceStatusView.setText("Not paired");
+        mDeviceStatusView.setText(getResources().getText(R.string.device_not_paired));
         ScanRecord scanRecord = scanResult.getScanRecord();
         if(scanRecord!=null){
             SpannableString advertise = makeString("\nBroadcast  ",convertByteToString(scanRecord.getBytes()));
@@ -127,12 +133,12 @@ public class TestCaseFragment extends Fragment {
         String address = device.getAddress();
         if(address.equals(mDeviceAddress)){
             if(state == BluetoothDevice.BOND_BONDING){
-                mDeviceStatusView.setText("Device is pairing");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_pairing));
             }else if(state == BluetoothDevice.BOND_BONDED){
-                mDeviceStatusView.setText("Device is paired");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_paired));
                 mAdapter.notifyPairSuccess();
             }else if(state == BluetoothDevice.BOND_NONE){
-                mDeviceStatusView.setText("Device is unpaired");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_not_paired));
             }
         }
     }
@@ -146,12 +152,12 @@ public class TestCaseFragment extends Fragment {
         }
         if(address.equals(mDeviceAddress)){
             if(state == BluetoothProfile.STATE_CONNECTING){
-                mDeviceStatusView.setText("Device is connecting");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_connecting));
             }else if(state == BluetoothProfile.STATE_CONNECTED){
-                mDeviceStatusView.setText("Device is connected");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_connected));
                 mAdapter.notifyDeviceConnected(address);
             }else if(state == BluetoothProfile.STATE_DISCONNECTED){
-                mDeviceStatusView.setText("Device is disconnected");
+                mDeviceStatusView.setText(getResources().getText(R.string.device_disconnected));
             }
         }
     }
@@ -159,21 +165,22 @@ public class TestCaseFragment extends Fragment {
     public void notifyAclDisconnected(BluetoothDevice device){
         String address = device.getAddress();
         if(address.equals(mDeviceAddress)){
-            mDeviceStatusView.setText("Device ACL disconnected");
+            mDeviceStatusView.setText(getResources().getText(R.string.acl_disconnected));
         }
     }
 
     public void notifyAclConnected(BluetoothDevice device){
         String address = device.getAddress();
         if(address.equals(mDeviceAddress)){
-            mDeviceStatusView.setText("Device ACL connected");
+            mDeviceStatusView.setText(getResources().getText(R.string.acl_connected));
         }
     }
 
-    public void notifyOnPairedDeviceClicked(BluetoothDevice device){
+    public void notifyOnPairedDeviceClicked(BluetoothDevice device,boolean connected){
         if(device == null){
             return;
         }
+        mDeviceStatusView.setText(connected?"Device connected":"Device disconnected");
         mCurrentDevice = device;
         mDeviceAddress = device.getAddress();
         SpannableString name = makeString("Name     ",device.getName());
@@ -185,6 +192,5 @@ public class TestCaseFragment extends Fragment {
     }
 
     public void onStartPairing(BluetoothDevice device){
-
     }
 }

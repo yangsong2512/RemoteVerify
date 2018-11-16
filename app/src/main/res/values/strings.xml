@@ -5,4 +5,12 @@
     <string name="voice_test">Voice Test</string>
     <string name="key_test">Keys Test</string>
     <string name="reconnection_test">Reconnect Test</string>
+    <string name="acl_connected">Device ACL connected</string>
+    <string name="acl_disconnected">Device ACL disconnected</string>
+    <string name="device_pairing">Device pairing</string>
+    <string name="device_paired">Device paired</string>
+    <string name="device_not_paired">Device not paired</string>
+    <string name="device_disconnected">Device disconnected</string>
+    <string name="device_connecting">Device connecting</string>
+    <string name="device_connected">Device connected</string>
 </resources>

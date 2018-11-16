@@ -183,15 +183,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPairedDeviceClicked(BluetoothDevice device) {
                 if(mTestCaseFragment != null){
-                    mTestCaseFragment.notifyOnPairedDeviceClicked(device);
-                    mDeviceUnderTest = device;
+                    boolean connected = false;
                     CoreService coreService = CoreService.getCoreService();
                     if(coreService != null){
-                        if(coreService.isDeviceConnected(device)){
+                        connected = coreService.isDeviceConnected(device);
+                        if(connected){
                             Toast.makeText(getBaseContext(),"device connected",Toast.LENGTH_SHORT).show();
                             startVoiceService(device);
                         }
                     }
+                    mTestCaseFragment.notifyOnPairedDeviceClicked(device,connected);
+                    mDeviceUnderTest = device;
                 }
             }
         });

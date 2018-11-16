@@ -212,6 +212,9 @@ public class TestCaseAdapter extends BaseAdapter {
 
     public void notifyDeviceConnected(String address){
         Log.d(TAG,"pair success:"+mCurrentCase);
+        if(mCurrentCase == null){
+            return;
+        }
         if(mCurrentCase.equals(mContext.getResources().getString(R.string.pair_test))){
             for(TestCase testCase:mTestCaseList){
                 if(testCase.title.equals(mCurrentCase)){
