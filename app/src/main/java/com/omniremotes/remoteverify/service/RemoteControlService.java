@@ -23,10 +23,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
-public class VoiceService extends Service implements ADPCMDecoder.OnPcmDataReadyListener {
-    private VoiceServiceBinder mBinder;
-    private static final String TAG="RemoteVerify-VoiceService";
-    private static VoiceService sVoiceService;
+public class RemoteControlService extends Service implements ADPCMDecoder.OnPcmDataReadyListener {
+    private static final String TAG="RemoteVerify-RemoteControlService";
+    private static RemoteControlService sRemoteControlService;
     private static final String OMNI_VOICE_SERVICE_UUID="65fa9513-e8ca-4efe-b5ba-67b7c44101dc";
     private static final String OMNI_VOICE_CONTROL_UUID="20d695c7-1f7b-4d11-afec-c6c5cfae7f52";
     private static final String OMNI_VOICE_DATA_UUID="9c98fa55-3de4-4361-8f26-ba1c62c8f222";
@@ -59,9 +58,10 @@ public class VoiceService extends Service implements ADPCMDecoder.OnPcmDataReady
     private ADPCMDecoder mAdpcmDecoder;
     private FileOutputStream mFileOutputStream;
     private AudioTrackPlayer mAudioPlayer;
-    public static synchronized VoiceService getInstance(){
-        if(sVoiceService != null){
-            return sVoiceService;
+    private RemoteControlServiceBinder mBinder;
+    public static synchronized RemoteControlService getInstance(){
+        if(sRemoteControlService != null){
+            return sRemoteControlService;
         }
         return null;
     }
@@ -76,20 +76,20 @@ public class VoiceService extends Service implements ADPCMDecoder.OnPcmDataReady
         super.onCreate();
         Log.d(TAG,"onCreate");
         if(mBinder == null){
-            mBinder = new VoiceServiceBinder(this);
+            mBinder = new RemoteControlServiceBinder(this);
         }
 
         setVoiceService(this);
     }
 
-    private void setVoiceService(VoiceService svc){
-        sVoiceService = svc;
+    private void setVoiceService(RemoteControlService svc){
+        sRemoteControlService = svc;
     }
 
 
-    private static class VoiceServiceBinder extends IVoiceService.Stub{
-        VoiceService svc;
-        VoiceServiceBinder(VoiceService service){
+    private static class RemoteControlServiceBinder extends IRemoteControl.Stub{
+        RemoteControlService svc;
+        RemoteControlServiceBinder(RemoteControlService service){
             svc = service;
         }
         @Override

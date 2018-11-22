@@ -27,8 +27,8 @@ import com.omniremotes.remoteverify.fragment.TestCaseFragment;
 import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 import com.omniremotes.remoteverify.service.CoreService;
 import com.omniremotes.remoteverify.service.ICoreService;
-import com.omniremotes.remoteverify.service.IVoiceService;
-import com.omniremotes.remoteverify.service.VoiceService;
+import com.omniremotes.remoteverify.service.IRemoteControl;
+import com.omniremotes.remoteverify.service.RemoteControlService;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG="RemoteVerify-MainActivity";
@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.BLUETOOTH_ADMIN,
     };
     private ICoreService mCoreService;
-    private IVoiceService mVoiceService;
+    private IRemoteControl mVoiceService;
     private BluetoothDevice mDeviceUnderTest;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,8 +64,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void bindVoiceService(Context context){
         Intent intent = new Intent();
-        intent.setAction("com.omniremotes.remoteverify.service.VoiceService");
-        intent.setComponent(new ComponentName("com.omniremotes.remoteverify","com.omniremotes.remoteverify.service.VoiceService"));
+        intent.setAction("com.omniremotes.remoteverify.service.RemoteControlService");
+        intent.setComponent(new ComponentName("com.omniremotes.remoteverify","com.omniremotes.remoteverify.service.RemoteControlService"));
         if(context.bindService(intent,mConnection,BIND_AUTO_CREATE)){
             Log.d(TAG,"bind voice service success");
         }else{
@@ -104,9 +104,9 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
                 coreService.registerOnBluetoothEventListener(new BluetoothEventListener());
-            }else if(className.equals("com.omniremotes.remoteverify.service.VoiceService")){
+            }else if(className.equals("com.omniremotes.remoteverify.service.RemoteControlService")){
                 Log.d(TAG,"onVoiceService connected");
-                mVoiceService = IVoiceService.Stub.asInterface(service);
+                mVoiceService = IRemoteControl.Stub.asInterface(service);
                 if(mVoiceService == null){
                     Log.d(TAG,"voice service is null");
                 }
@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopService(new Intent(MainActivity.this,VoiceService.class));
+        stopService(new Intent(MainActivity.this,RemoteControlService.class));
         if(mVoiceService != null || mCoreService != null){
             unbindService(mConnection);
         }

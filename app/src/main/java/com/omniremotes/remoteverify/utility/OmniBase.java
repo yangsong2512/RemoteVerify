@@ -28,7 +28,5 @@ public class OmniBase {
     }
 
     public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-        if(status == BluetoothGatt.GATT_SUCCESS){
-        }
     }
 }
