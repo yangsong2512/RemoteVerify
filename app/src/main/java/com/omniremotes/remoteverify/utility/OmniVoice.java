@@ -6,9 +6,6 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.content.Context;
 import android.util.Log;
-
-import com.omniremotes.remoteverify.decoder.ADPCMDecoder;
-
 import java.util.List;
 import java.util.UUID;
 

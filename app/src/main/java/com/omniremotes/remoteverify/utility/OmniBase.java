@@ -16,11 +16,11 @@ import static com.omniremotes.remoteverify.utility.RemoteUuid.CLIENT_CHARACTERIS
 
 public class OmniBase {
     private static final String TAG="RemoteVerify-OmniBase";
-    public BluetoothGatt mBluetoothGatt;
-    public FileOutputStream mFileOutputStream;
-    public AudioTrackPlayer mAudioPlayer;
-    public ADPCMDecoder mAdpcmDecoder;
-    public Context mContext;
+    BluetoothGatt mBluetoothGatt;
+    FileOutputStream mFileOutputStream;
+    AudioTrackPlayer mAudioPlayer;
+    ADPCMDecoder mAdpcmDecoder;
+    Context mContext;
     OmniBase(Context context){
         mContext = context;
     }

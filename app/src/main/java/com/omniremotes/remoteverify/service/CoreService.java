@@ -24,7 +24,6 @@ import com.omniremotes.remoteverify.interfaces.IBluetoothEventListener;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 public class CoreService extends Service {
     // Used to load the 'native-lib' library on application startup.

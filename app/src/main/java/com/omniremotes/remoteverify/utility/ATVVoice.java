@@ -14,8 +14,6 @@ import com.omniremotes.remoteverify.decoder.AudioTrackPlayer;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 
 import static android.content.Context.MODE_PRIVATE;
@@ -39,11 +37,10 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
     private static final byte AUDIO_SYNC = 0x0A;
     private static final byte GET_CAPS_RESP = 0x0B;
     private static final byte MIC_OPEN_ERROR = 0x0C;
-    public short mVersion = 0x0;
-    public short mCodecSupported = 0x01;
-    public short mBytesPerFrame = 134;
-    public short mBytesPerChara = 20;
-    public static final short ADPCM_8K_16BIT = 0x0001;
+    short mVersion = 0x0;
+    short mCodecSupported = 0x01;
+    short mBytesPerFrame = 134;
+    short mBytesPerChara = 20;
     ATVVoice(Context context){
         super(context);
     }
@@ -164,7 +161,7 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
                 break;
         }
     }
-    public void processAudioData(BluetoothGattCharacteristic characteristic){
+    void processAudioData(BluetoothGattCharacteristic characteristic){
         if(characteristic == null){
             return;
         }
@@ -248,6 +245,7 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
                     Log.d(TAG,"notification enabled");
                     mNotificationEnabled = true;
                     if(!mCapabilityResponse){
+                        mCapabilityResponse = true;
                         getCapabilities();
                     }else {
                         openMic();
