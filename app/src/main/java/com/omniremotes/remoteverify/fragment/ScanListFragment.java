@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -14,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.omniremotes.remoteverify.R;
 import com.omniremotes.remoteverify.adapter.DeviceListAdapter;
@@ -22,10 +22,10 @@ import com.omniremotes.remoteverify.adapter.ScanListAdapter;
 
 public class ScanListFragment extends Fragment {
     private static final String TAG="RemoteVerify-ScanListFragment";
-    private static ScanListFragment mScanListFragment;
     private ScanListAdapter mAdapter;
     private DeviceListAdapter mDeviceListAdapter;
     private OnScanListFragmentEvents mListener;
+    private Handler mHandler;
     public interface OnScanListFragmentEvents{
         void onDeviceClicked(ScanResult result);
         void onPairedDeviceClicked(BluetoothDevice device);
@@ -89,28 +89,52 @@ public class ScanListFragment extends Fragment {
             }
         });
         listView.setAdapter(mAdapter);
+        mHandler = new Handler(getActivity().getMainLooper());
     }
 
-    public void notifyOnScanResult(ScanResult result){
-        if(mAdapter != null){
-            mAdapter.notifyDataChanged(result);
+    public void notifyOnScanResult(final ScanResult result){
+        if(mHandler == null){
+            return;
         }
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if(mAdapter != null){
+                    mAdapter.notifyDataChanged(result);
+                }
+            }
+        });
     }
 
-    public void notifyBondStateChanged(BluetoothDevice device,int preState,int state){
-        if(state == BluetoothDevice.BOND_NONE){
-            mDeviceListAdapter.removeDevice(device);
-        }else if(state == BluetoothDevice.BOND_BONDED){
-            mDeviceListAdapter.addDevice(device);
-            mAdapter.clearDataSet();
-        }
+    public void notifyBondStateChanged(final BluetoothDevice device,final int preState,final int state){
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if(state == BluetoothDevice.BOND_NONE){
+                    mDeviceListAdapter.removeDevice(device);
+                }else if(state == BluetoothDevice.BOND_BONDED){
+                    mDeviceListAdapter.addDevice(device);
+                    mAdapter.clearDataSet();
+                }
+            }
+        });
+
     }
 
     public void onStartPairing(BluetoothDevice device){
         Log.d(TAG,"onStartPairing");
-        if(mAdapter != null){
-            mAdapter.clearDataSet();
+        if(mHandler == null){
+            return;
         }
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if(mAdapter != null){
+                    mAdapter.clearDataSet();
+                }
+            }
+        });
+
     }
 
     @Override

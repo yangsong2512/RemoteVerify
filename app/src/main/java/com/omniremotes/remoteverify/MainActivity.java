@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.BLUETOOTH_ADMIN,
     };
     private ICoreService mCoreService;
-    private IRemoteControl mVoiceService;
+    private IRemoteControl mRemoteControlService;
     private BluetoothDevice mDeviceUnderTest;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void bindVoiceService(Context context){
+    private void bindRemoteControlService(Context context){
         Intent intent = new Intent();
         intent.setAction("com.omniremotes.remoteverify.service.RemoteControlService");
         intent.setComponent(new ComponentName("com.omniremotes.remoteverify","com.omniremotes.remoteverify.service.RemoteControlService"));
@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void doBind(Context context){
         bindCoreService(context);
-        bindVoiceService(context);
+        bindRemoteControlService(context);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -106,8 +106,8 @@ public class MainActivity extends AppCompatActivity {
                 coreService.registerOnBluetoothEventListener(new BluetoothEventListener());
             }else if(className.equals("com.omniremotes.remoteverify.service.RemoteControlService")){
                 Log.d(TAG,"onVoiceService connected");
-                mVoiceService = IRemoteControl.Stub.asInterface(service);
-                if(mVoiceService == null){
+                mRemoteControlService = IRemoteControl.Stub.asInterface(service);
+                if(mRemoteControlService == null){
                     Log.d(TAG,"voice service is null");
                 }
             }
@@ -151,9 +151,9 @@ public class MainActivity extends AppCompatActivity {
                     }else if(testCase.equals(getResources().getString(R.string.voice_test))){
                         try{
                             if(running){
-                                mVoiceService.startVoice(device);
+                                mRemoteControlService.startVoice(device);
                             }else {
-                                mVoiceService.stopVoice(device);
+                                mRemoteControlService.stopVoice(device);
                             }
                         }catch (RemoteException e){
                             Log.d(TAG,""+e);
@@ -189,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
                         connected = coreService.isDeviceConnected(device);
                         if(connected){
                             Toast.makeText(getBaseContext(),"device connected",Toast.LENGTH_SHORT).show();
-                            startVoiceService(device);
+                            startRemoteControlService(device);
                         }
                     }
                     mTestCaseFragment.notifyOnPairedDeviceClicked(device,connected);
@@ -203,12 +203,12 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
-    private void startVoiceService(BluetoothDevice device){
-        if(mVoiceService == null){
+    private void startRemoteControlService(BluetoothDevice device){
+        if(mRemoteControlService == null){
             return;
         }
         try{
-            mVoiceService.connect(device);
+            mRemoteControlService.connect(device);
         }catch (RemoteException e){
             Log.d(TAG,""+e);
         }
@@ -286,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         stopService(new Intent(MainActivity.this,RemoteControlService.class));
-        if(mVoiceService != null || mCoreService != null){
+        if(mRemoteControlService != null || mCoreService != null){
             unbindService(mConnection);
         }
     }
@@ -309,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
                     ",state:"+state);
             mTestCaseFragment.notifyConnectionStateChanged(device,preState,state);
             if(state == BluetoothProfile.STATE_CONNECTED && device.equals(mDeviceUnderTest)){
-                startVoiceService(device);
+                startRemoteControlService(device);
             }
         }
 

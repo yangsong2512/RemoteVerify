@@ -21,6 +21,7 @@ public class AudioTrackPlayer {
     private List<byte[]> mDataList;
     private int mMinBufferSize;
     public AudioTrackPlayer(int sampleRate,int channelConfig,int audioFormat){
+        Log.d(TAG,"AudioTrackPlayer");
         mByteStream = new ByteArrayOutputStream();
         mDataList = new ArrayList<>();
         mMinBufferSize = AudioTrack.getMinBufferSize(sampleRate,channelConfig,audioFormat);
@@ -37,12 +38,15 @@ public class AudioTrackPlayer {
     }
 
     public void onAudioStop(){
+        Log.d(TAG,"onAudioStop");
+        mQuit = true;
         synchronized (mLock){
             mLock.notifyAll();
         }
-        mQuit = true;
-        mAudioTrack.stop();
-        mAudioTrack.release();
+        if(mAudioTrack != null){
+            mAudioTrack.stop();
+            mAudioTrack.release();
+        }
         if(mThread != null){
             mThread.interrupt();
             mThread = null;
