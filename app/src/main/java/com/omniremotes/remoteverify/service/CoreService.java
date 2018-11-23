@@ -340,7 +340,13 @@ public class CoreService extends Service {
                 mListener.onStartParing(device);
             }
             SystemClock.sleep(500);
-            startScan(device.getAddress(),ScanSettings.SCAN_MODE_LOW_LATENCY);
+            //device.createBond();
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startScan(mPairingDevice.getAddress(),ScanSettings.SCAN_MODE_BALANCED);
+                }
+            },10*1000);
         }
     }
 

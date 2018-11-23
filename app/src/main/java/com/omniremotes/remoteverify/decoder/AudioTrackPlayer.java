@@ -21,7 +21,7 @@ public class AudioTrackPlayer {
     private List<byte[]> mDataList;
     private int mMinBufferSize;
     public AudioTrackPlayer(int sampleRate,int channelConfig,int audioFormat){
-        Log.d(TAG,"AudioTrackPlayer");
+        Log.d(TAG,"AudioTrackPlayer:sampleRate"+sampleRate);
         mByteStream = new ByteArrayOutputStream();
         mDataList = new ArrayList<>();
         mMinBufferSize = AudioTrack.getMinBufferSize(sampleRate,channelConfig,audioFormat);
@@ -63,7 +63,6 @@ public class AudioTrackPlayer {
                         if(mDataList.size()>0){
                             byte[] pcm = mDataList.remove(mDataList.size()-1);
                             mAudioTrack.write(pcm,0,pcm.length);
-                            Log.d(TAG,"write audio data");
                         }
                     }catch (InterruptedException e){
                         Log.d(TAG,""+e);

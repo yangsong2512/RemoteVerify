@@ -114,7 +114,7 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
     void onAudioStart(){
         try{
             mFileOutputStream = mContext.openFileOutput("test.pcm",MODE_PRIVATE);
-            mAudioPlayer = new AudioTrackPlayer(8000,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
+            mAudioPlayer = new AudioTrackPlayer(mCodecSupported==1?8000:16000,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
         }catch (FileNotFoundException e){
             Log.d(TAG,""+e);
         }

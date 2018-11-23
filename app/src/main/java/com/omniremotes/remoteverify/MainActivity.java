@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
@@ -71,6 +72,12 @@ public class MainActivity extends AppCompatActivity {
         }else{
             Log.d(TAG,"failed to bind voice service");
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        Log.d(TAG,"onConfigurationChanged");
+        super.onConfigurationChanged(newConfig);
     }
 
     private void bindCoreService(Context context){

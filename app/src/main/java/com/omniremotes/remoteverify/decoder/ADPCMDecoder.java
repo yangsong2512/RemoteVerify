@@ -165,7 +165,6 @@ public class ADPCMDecoder {
         boolean odd = true;
         byte[] pcmData = new byte[(rawData.length-6)*4];
         int predictedSample = 0;
-        Log.d(TAG,"decode");
         while (n < rawData.length) {
             diff = 0;
             if (odd) code = ((rawData[n] & 0xff) >> 4);
