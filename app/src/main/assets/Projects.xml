@@ -8,6 +8,10 @@
         Desc="Press voice key or click start button to start voice test">
         <Config Name="Common" Decoder="Adpcm" SampleRate="16" Bitdepth="16"/>
 	</Case>
+	<Case Enable="true" Title="Ota Test"
+		Desc="ota test">
+		<Config name="Common"/>
+	</Case>
 	<Case Enable="false" Title="Reconnect test"
         Desc="Put the device into idle mode, and wait for device to be disconnected,
         then press any key to reconnect">

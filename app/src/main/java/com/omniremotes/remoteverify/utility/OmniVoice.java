@@ -24,6 +24,17 @@ public class OmniVoice extends ATVVoice{
     OmniVoice(Context context){
         super(context);
     }
+
+    @Override
+    public void cleanup(){
+        Log.d(TAG,"cleanup");
+        mOmniVoiceServiceSupported = false;
+        mNotificationEnabled = false;
+        mOmniControlChara = null;
+        mOmniVoiceChara = null;
+        super.cleanup();
+    }
+
     @Override
     public void onGattServiceConnected(BluetoothGatt gatt){
         super.onGattServiceConnected(gatt);
@@ -87,10 +98,9 @@ public class OmniVoice extends ATVVoice{
                 enableNotification(mOmniVoiceChara);
                 return;
             }
-            byte[] bytes = new byte[]{(byte)0xA2,0x01};
             if(mOmniControlChara != null && mBluetoothGatt != null){
                 Log.d(TAG,"open omni mic");
-
+                byte[] bytes = new byte[]{(byte)0xA2,0x01};
                 mOmniControlChara.setValue(bytes);
                 mBluetoothGatt.writeCharacteristic(mOmniControlChara);
                 mVersion = 0x0;

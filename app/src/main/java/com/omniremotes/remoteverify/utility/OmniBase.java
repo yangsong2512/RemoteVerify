@@ -10,6 +10,7 @@ import com.omniremotes.remoteverify.decoder.ADPCMDecoder;
 import com.omniremotes.remoteverify.decoder.AudioTrackPlayer;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 import static com.omniremotes.remoteverify.utility.RemoteUuid.CLIENT_CHARACTERISTIC_CONFIG;
@@ -27,6 +28,27 @@ public class OmniBase {
     public void onGattServiceConnected(BluetoothGatt gatt){
         mBluetoothGatt = gatt;
         Log.d(TAG,"onGattServiceConnected");
+    }
+
+    public void cleanup(){
+        if(mBluetoothGatt != null){
+            mBluetoothGatt = null;
+        }
+        if(mFileOutputStream != null){
+            try{
+                mFileOutputStream.close();
+            }catch (IOException e){
+                Log.d(TAG,""+e);
+            }
+        }
+        if(mAudioPlayer != null){
+            mAudioPlayer.onAudioStop();
+            mAudioPlayer = null;
+        }
+        if(mAdpcmDecoder != null){
+            mAdpcmDecoder.onVoiceStop();
+            mAdpcmDecoder = null;
+        }
     }
 
     public void onGattServiceDisconnected(){

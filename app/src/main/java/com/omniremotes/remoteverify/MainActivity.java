@@ -118,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG,"voice service is null");
                 }
             }
-
         }
         @Override
         public void onServiceDisconnected(ComponentName name) {
@@ -196,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                         connected = coreService.isDeviceConnected(device);
                         if(connected){
                             Toast.makeText(getBaseContext(),"device connected",Toast.LENGTH_SHORT).show();
-                            startRemoteControlService(device);
+                            connectDevice(device);
                         }
                     }
                     mTestCaseFragment.notifyOnPairedDeviceClicked(device,connected);
@@ -210,7 +209,18 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
-    private void startRemoteControlService(BluetoothDevice device){
+    private void disconnectDevice(BluetoothDevice device){
+        if(mRemoteControlService == null){
+            return;
+        }
+        try{
+            mRemoteControlService.disconnect(device);
+        }catch (RemoteException e){
+            Log.d(TAG,""+e);
+        }
+    }
+
+    private void connectDevice(BluetoothDevice device){
         if(mRemoteControlService == null){
             return;
         }
@@ -316,7 +326,9 @@ public class MainActivity extends AppCompatActivity {
                     ",state:"+state);
             mTestCaseFragment.notifyConnectionStateChanged(device,preState,state);
             if(state == BluetoothProfile.STATE_CONNECTED && device.equals(mDeviceUnderTest)){
-                startRemoteControlService(device);
+                connectDevice(device);
+            }else if(state == BluetoothProfile.STATE_DISCONNECTED&&device.equals(mDeviceUnderTest)){
+                disconnectDevice(device);
             }
         }
 

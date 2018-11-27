@@ -44,6 +44,17 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
     ATVVoice(Context context){
         super(context);
     }
+
+    public void cleanup(){
+        mATVVoiceSupported = false;
+        mNotificationEnabled = false;
+        mCapabilityResponse = false;
+        mATVRXChara = null;
+        mATVTXChara = null;
+        mATVCTLChara = null;
+        super.cleanup();
+    }
+
     @Override
     public void onGattServiceConnected(BluetoothGatt gatt){
         super.onGattServiceConnected(gatt);

@@ -79,6 +79,7 @@ public class ADPCMDecoder {
         if(mOutputStream != null){
             try{
                 mOutputStream.close();
+                mOutputStream = null;
             }catch (IOException e){
                 Log.d(TAG,""+e);
             }

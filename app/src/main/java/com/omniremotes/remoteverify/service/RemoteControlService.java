@@ -20,6 +20,7 @@ public class RemoteControlService extends Service {
     private BluetoothDevice mCurrentDevice;
     private RemoteControlServiceBinder mBinder;
     private OmniOTA mOmniBase;
+    private boolean mStartBeforeConnect = false;
     private IRemoteServiceListener mListener;
     public static synchronized RemoteControlService getInstance(){
         if(sRemoteControlService != null){
@@ -77,9 +78,60 @@ public class RemoteControlService extends Service {
             }
             svc.connect(device);
         }
+
+        @Override
+        public void disconnect(BluetoothDevice device){
+            if(svc == null){
+                return;
+            }
+            svc.disconnect(device);
+        }
+
+        @Override
+        public void startOta(BluetoothDevice device){
+            if(svc == null){
+                return;
+            }
+            svc.startOta(device);
+        }
+
+        @Override
+        public void stopOta(BluetoothDevice device){
+            if(svc == null){
+                return;
+            }
+            svc.stopOta(device);
+        }
+    }
+
+    private void startOta(BluetoothDevice device){
+        if(mOmniBase == null){
+            return;
+        }
+        mOmniBase.startOta(device);
+    }
+
+    private void stopOta(BluetoothDevice device){
+        if(mOmniBase == null){
+            return;
+        }
+        mOmniBase.stopOta(device);
+    }
+
+    private void disconnect(BluetoothDevice device){
+        Log.d(TAG,"disconnect device:"+device.getAddress());
+        if(mCurrentDevice != null && mCurrentDevice.equals(device)){
+            if(mBluetoothGatt == null){
+                return;
+            }
+            mBluetoothGatt.close();
+            mBluetoothGatt = null;
+            mCurrentDevice = null;
+        }
     }
 
     private void connect(BluetoothDevice device){
+        Log.d(TAG,"connect device:"+device.getAddress());
         if(mCurrentDevice != null && mCurrentDevice.equals(device)){
             Log.d(TAG,"device already under test");
             return;
@@ -87,6 +139,10 @@ public class RemoteControlService extends Service {
         if(mCurrentDevice != null && (!mCurrentDevice.equals(device))){
             Log.d(TAG,"close gatt");
             mBluetoothGatt.close();
+            if(mOmniBase != null){
+                Log.d(TAG,"cleanup");
+                mOmniBase.cleanup();
+            }
         }
         mCurrentDevice = device;
         mBluetoothGatt = device.connectGatt(getBaseContext(),false,mBluetoothGattCallback,BluetoothDevice.TRANSPORT_LE);
@@ -94,6 +150,7 @@ public class RemoteControlService extends Service {
 
     private void startVoice(BluetoothDevice device){
         if(mBluetoothGatt == null && (!device.equals(mCurrentDevice))){
+            mStartBeforeConnect = true;
             connect(device);
         }else{
             if(mOmniBase != null){
@@ -141,11 +198,16 @@ public class RemoteControlService extends Service {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
+            Log.d(TAG,"onServiceDiscovered");
             if(status == BluetoothGatt.GATT_SUCCESS){
                 if(mOmniBase == null){
                     return;
                 }
                 mOmniBase.onServicesDiscovered(gatt,status);
+                if(mStartBeforeConnect){
+                    mStartBeforeConnect = false;
+                    startVoice(mCurrentDevice);
+                }
             }
         }
 

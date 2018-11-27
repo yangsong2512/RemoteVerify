@@ -8,4 +8,7 @@ interface IRemoteControl {
     void startVoice(in BluetoothDevice device);
     void stopVoice(in BluetoothDevice device);
     void connect(in BluetoothDevice device);
+    void disconnect(in BluetoothDevice device);
+    void startOta(in BluetoothDevice device);
+    void stopOta(in BluetoothDevice device);
 }

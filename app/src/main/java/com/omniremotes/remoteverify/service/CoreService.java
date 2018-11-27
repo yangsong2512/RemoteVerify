@@ -90,12 +90,12 @@ public class CoreService extends Service {
                             Log.d(TAG,""+e);
                         }
                     }else if(preState == BluetoothDevice.BOND_BONDED && state == BluetoothDevice.BOND_NONE){
-                        if( mPairingDevice.equals(device) ){
+                        if( mPairingDevice!=null && mPairingDevice.equals(device) ){
                             Log.d(TAG,"start pair");
                             startPair(device);
                         }
                     }else if(preState == BluetoothDevice.BOND_BONDING && state == BluetoothDevice.BOND_NONE){
-                        if( mPairingDevice.equals(device)){
+                        if( mPairingDevice!=null && mPairingDevice.equals(device)){
                             Log.d(TAG,"bond error");
                             startPair(device);
                         }

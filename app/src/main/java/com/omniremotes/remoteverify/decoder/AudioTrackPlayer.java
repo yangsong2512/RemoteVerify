@@ -16,7 +16,7 @@ public class AudioTrackPlayer {
     private Thread mThread;
     private boolean mQuit = false;
     private final Object mLock = new Object();
-    private static final int MAX_DATA_IN_QUEUE = 6;
+    private static final int MAX_DATA_FRAME_IN_QUEUE = 6;
     private ByteArrayOutputStream mByteStream;
     private List<byte[]> mDataList;
     private int mMinBufferSize;
@@ -46,10 +46,15 @@ public class AudioTrackPlayer {
         if(mAudioTrack != null){
             mAudioTrack.stop();
             mAudioTrack.release();
+            mAudioTrack = null;
         }
         if(mThread != null){
             mThread.interrupt();
             mThread = null;
+        }
+        if(mDataList != null){
+            mDataList.clear();
+            mDataList = null;
         }
     }
 
@@ -77,7 +82,7 @@ public class AudioTrackPlayer {
             try{
                 mByteStream.write(data);
                 if(mByteStream.size()>=mMinBufferSize){
-                    if(mDataList.size()==MAX_DATA_IN_QUEUE){
+                    if(mDataList.size()==MAX_DATA_FRAME_IN_QUEUE){
                         mDataList.remove(mDataList.size()-1);
                     }
                     byte[] trackData = mByteStream.toByteArray();
