@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.omniremotes.remoteverify"
-    >
+    package="com.omniremotes.remoteverify">
+
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="false"
@@ -16,33 +16,37 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".VerifyActivity"
             android:configChanges="navigation|keyboardHidden|screenSize|keyboard|orientation|touchscreen"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-                <action android:name="android.intent.action.VIEW"/>
+                <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
 
         <service
-            android:name="com.omniremotes.remoteverify.service.CoreService"
-            android:permission="com.omniremotes.remoteverify.service.CORE_SERVICE"
-            >
+            android:name=".service.CoreService"
+            android:permission="com.omniremotes.remoteverify.service.CORE_SERVICE">
             <intent-filter>
-                <action android:name="com.omniremotes.remoteverify.service.CoreService"/>
+                <action android:name="com.omniremotes.remoteverify.service.CoreService" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
-        <service android:name="com.omniremotes.remoteverify.service.RemoteControlService"
-            android:permission="com.omniremotes.remoteverify.service.VOICE_SERVICE"
-            >
+        <service
+            android:name=".service.RemoteControlService"
+            android:permission="com.omniremotes.remoteverify.service.VOICE_SERVICE">
             <intent-filter>
-                <action android:name="com.omniremotes.remoteverify.service.VoiceService"/>
+                <action android:name="com.omniremotes.remoteverify.service.VoiceService" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+        <service android:name=".service.RfCommService" />
+
     </application>
 
 </manifest>

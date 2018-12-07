@@ -13,4 +13,11 @@
     <string name="device_disconnected">Device disconnected</string>
     <string name="device_connecting">Device connecting</string>
     <string name="device_connected">Device connected</string>
+    <string name="ota">OTA</string>
+    <string name="pair">PAIR</string>
+    <string name="voice">VOICE</string>
+    <string name="paired_device">Paired Devices</string>
+    <string name="available_device">Available Devices</string>
+    <string name="device_list">Device List</string>
+    <string name="start_scan">Scan</string>
 </resources>

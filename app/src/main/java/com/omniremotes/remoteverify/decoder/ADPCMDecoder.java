@@ -76,6 +76,7 @@ public class ADPCMDecoder {
 
     public void onVoiceStop(){
         Log.d(TAG,"onVoiceStop:"+mDroppedFrames);
+        mNewFrameStartFlag = false;
         if(mOutputStream != null){
             try{
                 mOutputStream.close();

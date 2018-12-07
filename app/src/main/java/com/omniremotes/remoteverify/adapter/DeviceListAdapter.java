@@ -17,6 +17,10 @@ import java.util.Set;
 public class DeviceListAdapter extends BaseAdapter {
     private List<BluetoothDevice> mDeviceList;
     private Context mContext;
+    public DeviceListAdapter(Context context){
+        mDeviceList = new ArrayList<>();
+        mContext = context;
+    }
     public DeviceListAdapter(Context context, Set<BluetoothDevice> devices){
         mDeviceList = new ArrayList<>();
         mContext = context;
@@ -75,6 +79,10 @@ public class DeviceListAdapter extends BaseAdapter {
                 return;
             }
         }
+    }
+
+    public void addDevices(Set<BluetoothDevice> devices){
+        mDeviceList.addAll(devices);
     }
 
     public void addDevice(BluetoothDevice device){

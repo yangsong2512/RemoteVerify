@@ -132,14 +132,16 @@ public class ATVVoice extends OmniBase implements ADPCMDecoder.OnPcmDataReadyLis
         mAdpcmDecoder = new ADPCMDecoder(mVersion,mCodecSupported,mBytesPerFrame,mBytesPerChara);
         mAdpcmDecoder.registerOnPcmDataReadyListener(this);
         mAdpcmDecoder.onVoiceStart();
-
     }
 
     void onAudioStop(){
         if(mAudioPlayer != null){
             mAudioPlayer.onAudioStop();
         }
-        mAdpcmDecoder.onVoiceStop();
+        if(mAdpcmDecoder != null){
+            mAdpcmDecoder.onVoiceStop();
+            mAdpcmDecoder = null;
+        }
         if(mFileOutputStream != null){
             try{
                 mFileOutputStream.flush();

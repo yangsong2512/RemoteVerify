@@ -32,6 +32,7 @@ public class OmniBase {
 
     public void cleanup(){
         if(mBluetoothGatt != null){
+            mBluetoothGatt.close();
             mBluetoothGatt = null;
         }
         if(mFileOutputStream != null){
